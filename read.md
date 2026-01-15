@@ -89,6 +89,8 @@ tea-culture-hub/
 │   │   │   ├── TeaCategoryList.tsx
 │   │   │   └── TeaDetail.tsx
 │   │   └── common/              # 通用组件（Loading、Error、SEO 等）
+│   │   │   ├── PageContainer.tsx
+│   │   │   ├── LegalPageLayout.tsx
 │   ├── contexts/                # React Context
 │   │   ├── AuthContext.tsx      # 用户认证（可选，后续可扩展管理员）
 │   │   └── ThemeContext.tsx     # 深色模式等（可选）
