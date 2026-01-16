@@ -5,7 +5,7 @@ import type { Article } from '@/types'
 import articlesData from '@/datas/articles.json'
 
 // Cache configuration
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+const CACHE_DURATION = 60 * 60 * 1000 // 60 minutes
 
 // In-memory cache
 const cache = {

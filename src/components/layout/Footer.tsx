@@ -9,7 +9,7 @@ export function Footer() {
           {/* Brand Column */}
           <div className="space-y-4">
             <Link href="/" className="flex flex-row items-center gap-2 text-xl font-bold text-tea-700 hover:text-tea-600 transition-colors">
-              <Coffee className="h-6 w-6" /><span className="tracking-wide">茶韵</span>
+              <img src="/icon.png" className="h-6 w-6" /><span className="tracking-wide">茶韵</span>
             </Link>
             <p className="text-sm text-earth-600 leading-relaxed max-w-xs">
               致力于传播中国茶文化，让更多人了解茶、喜爱茶、品味茶。从一片树叶到一杯香茗，我们与您同行。

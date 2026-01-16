@@ -10,10 +10,10 @@ export default function HomePage() {
         {/* 背景图层 */}
         <div className="absolute inset-0 z-0">
           {/* 这里使用 CSS 渐变模拟高质量背景图，实际项目中应替换为真实图片 */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/60 z-10" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/20 z-10" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
-            src="https://images.unsplash.com/photo-1544787219-7f47ccb76574?q=80&w=2521&auto=format&fit=crop"
+            src="https://img2.baidu.com/it/u=2299539294,1644579123&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=667"
             alt="Tea Ceremony" 
             className="w-full h-full object-cover"
           />
@@ -22,7 +22,7 @@ export default function HomePage() {
         {/* 内容层 */}
         <div className="container mx-auto px-4 relative z-20 text-center text-white">
           <span className="inline-block px-4 py-1.5 mb-6 border border-white/30 rounded-full bg-white/10 backdrop-blur-md text-sm font-light tracking-widest uppercase">
-            EST. 2024 · Tea Culture Hub
+            EST. 2026 · Tea Culture Hub
           </span>
           <h1 className="text-5xl md:text-7xl font-bold mb-8 tracking-tight leading-tight">
             一杯好茶<br className="md:hidden" /> <span className="font-light italic text-tea-100">润泽</span>生活
@@ -56,7 +56,7 @@ export default function HomePage() {
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                  {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
-                  src="https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?q=80&w=1000&auto=format&fit=crop" 
+                  src="https://img2.baidu.com/it/u=348003088,289864234&fm=253&fmt=auto&app=138&f=JPEG?w=800&h=1067" 
                   alt="Tea Leaves" 
                   className="w-full h-auto object-cover transform hover:scale-105 transition-transform duration-700"
                 />
@@ -124,6 +124,50 @@ export default function HomePage() {
               href="/brewing"
               linkText="学习冲泡"
             />
+          </div>
+        </div>
+      </section>
+
+      {/* 茶人感悟区域 */}
+      <section className="py-24 bg-tea-50">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center gap-12 max-w-5xl mx-auto">
+            {/* 图片区域 */}
+            <div className="w-full md:w-1/2 order-2 md:order-1">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-tea-200 rounded-tr-[60px] rounded-bl-[60px] transform translate-x-4 translate-y-4 transition-transform group-hover:translate-x-6 group-hover:translate-y-6"></div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src="/lyl_tea.jpeg" 
+                  alt="茶人品茗" 
+                  className="relative z-10 w-full h-[400px] object-cover rounded-tr-[60px] rounded-bl-[60px] shadow-xl"
+                />
+              </div>
+            </div>
+            
+            {/* 文字区域 */}
+            <div className="w-full md:w-1/2 space-y-8 order-1 md:order-2">
+              <div className="flex items-center gap-4 text-tea-600">
+                <span className="h-px w-12 bg-tea-600"></span>
+                <span className="uppercase tracking-widest text-sm font-medium">茶与生活</span>
+              </div>
+              
+              <blockquote className="text-2xl md:text-3xl font-serif text-tea-900 leading-relaxed italic relative">
+                <span className="absolute -top-4 -left-6 text-6xl text-tea-200 opacity-50">"</span>
+                喝茶当于瓦屋纸窗之下，清泉绿茶，用素雅的陶瓷茶具，同二三人共饮，得半日之闲，可抵十年的尘梦。
+              </blockquote>
+              
+              <div className="flex items-center gap-4 pt-2">
+                <div className="h-12 w-12 rounded-full bg-tea-200 overflow-hidden">
+                   {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/lyl.jpg" alt="Avatar" className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-tea-900">李燕玲</p>
+                  <p className="text-earth-500 text-sm">《我爱喝茶》</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

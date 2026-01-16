@@ -35,7 +35,7 @@ export function Header() {
         {/* Logo */}
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2 text-xl font-bold text-tea-700 hover:text-tea-600 transition-colors">
-            <Coffee className="h-7 w-7" />
+            <img src="/icon.png" className="h-7 w-7" />
             <span className="tracking-wide">茶韵</span>
           </Link>
         </div>
