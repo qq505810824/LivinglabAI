@@ -39,7 +39,7 @@ export default function TeaDetailPage() {
   return (
     <div className="min-h-screen bg-earth-50/50 pb-20">
       {/* 顶部 Hero 区域 */}
-      <div className="relative h-[400px] w-full bg-tea-900 overflow-hidden">
+      <div className="relative h-[30vh] md:h-[40vh] w-full bg-tea-900 overflow-hidden">
         {tea.image_url && (
           <>
             <div className="absolute inset-0 bg-black/40 z-10" />
@@ -47,7 +47,7 @@ export default function TeaDetailPage() {
             <img 
               src={tea.image_url} 
               alt={tea.name} 
-              className="w-full h-full object-cover blur-sm scale-110"
+              className="w-full h-full object-cover blur-sm scale-105 opacity-80"
             />
           </>
         )}
@@ -81,6 +81,18 @@ export default function TeaDetailPage() {
           {/* 主内容卡片 */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-12">
             <div className="p-8 md:p-12">
+              {/* Full Image Display */}
+              {tea.image_url && (
+                <div className="mb-10 -mx-4 md:-mx-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img 
+                    src={tea.image_url} 
+                    alt={tea.name} 
+                    className="w-full h-auto md:rounded-lg shadow-lg"
+                  />
+                </div>
+              )}
+
               {/* 冲泡参数栏 */}
               <div className="flex flex-wrap gap-8 p-6 bg-tea-50 rounded-xl mb-10 border border-tea-100">
                 <div className="flex items-center gap-3">

@@ -37,9 +37,12 @@ export function TeaCard({ tea }: TeaCardProps) {
       {/* 内容区域 */}
       <div className="flex flex-col flex-grow p-5">
         <div className="flex justify-between items-start mb-3">
-          <h3 className="text-xl font-bold text-tea-800 group-hover:text-tea-600 transition-colors line-clamp-1">
+          <Link 
+            href={`/teas/${tea.slug}`}
+            className="text-xl font-bold hover:underline text-tea-800 group-hover:text-tea-600 transition-colors line-clamp-1"
+          >
             {tea.name}
-          </h3>
+          </Link>
         </div>
         
         <p className="text-earth-600 text-sm line-clamp-3 mb-4 flex-grow leading-relaxed">
