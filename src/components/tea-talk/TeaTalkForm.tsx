@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { Send, Image as ImageIcon, X } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
+import Link from 'next/link'
 
 interface TeaTalkFormProps {
   onSubmit: (title: string, content: string, imageUrl: string) => void
 }
 
 export function TeaTalkForm({ onSubmit }: TeaTalkFormProps) {
+  const { user } = useAuth()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [imageUrl, setImageUrl] = useState('')
@@ -29,7 +32,28 @@ export function TeaTalkForm({ onSubmit }: TeaTalkFormProps) {
         分享你的茶语
       </h3>
       
-      <form onSubmit={handleSubmit} className="space-y-4">
+      {user ? (
+        <div className="flex items-center gap-3 mb-6 p-3 bg-tea-50/50 rounded-lg">
+          <img 
+            src={user.avatar} 
+            alt={user.username} 
+            className="w-10 h-10 rounded-full border border-tea-200 object-cover" 
+          />
+          <div>
+            <div className="font-medium text-tea-900">{user.username}</div>
+            <div className="text-xs text-tea-600">正在分享...</div>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-6 p-4 bg-tea-50 rounded-lg border border-tea-100 flex items-center justify-between">
+          <span className="text-tea-800">登录后即可分享你的茶语</span>
+          <Link href="/login" className="px-4 py-2 bg-tea-500 text-white rounded-lg text-sm font-medium hover:bg-tea-600 transition-colors">
+            去登录
+          </Link>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className={`space-y-4 ${!user ? 'opacity-50 pointer-events-none' : ''}`}>
         <div>
           <input
             type="text"

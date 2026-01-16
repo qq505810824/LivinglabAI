@@ -1,0 +1,16 @@
+[
+  {
+    "id": "1",
+    "username": "聪",
+    "email": "teacher@docai.net",
+    "password": "docai123123",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=TeaMaster"
+  },
+  {
+    "id": "2",
+    "username": "玲",
+    "email": "ling@qq.com",
+    "password": "123456",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=GreenLeaf"
+  }
+]

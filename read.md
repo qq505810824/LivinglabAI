@@ -316,15 +316,27 @@ vercel --prod
 2. **分页处理**：每页显示 20 条数据。
 3. **发布功能**：页面底部提供发布内容表单。
 4. **响应式布局**：完美适配移动端和 PC 端展示。
+5. **用户认证**：
+   - 登录/注册功能及页面。
+   - 使用 Hooks 管理认证逻辑。
+   - 模拟登录（验证 datas 数据），localStorage 持久化。
+   - 登录后在发布区显示用户信息。
 
 **技术实现**  
-1. **数据模拟**：在 `src/datas/tea_talks.json` 中生成 50 条茶文化相关数据。
-2. **状态管理**：使用 `src/hooks/useTeaTalks.ts` 管理数据获取、分页、点赞及模拟发布。
-3. **路由结构**：新增页面 `src/app/(main)/tea-talk/page.tsx`。
+1. **数据模拟**：
+   - `src/datas/tea_talks.json`：50 条茶文化相关数据。
+   - `src/datas/users.json`：2 个模拟用户数据。
+2. **状态管理**：
+   - `src/hooks/useTeaTalks.ts`：管理数据获取、分页、点赞及模拟发布。
+   - `src/hooks/useAuth.ts`：管理登录、注册、登出逻辑。
+3. **路由结构**：
+   - 新增页面 `src/app/(main)/tea-talk/page.tsx`。
+   - 新增页面 `src/app/(auth)/login/page.tsx`。
+   - 新增页面 `src/app/(auth)/register/page.tsx`。
 4. **组件拆分**：
    - `src/components/tea-talk/TeaTalkCard.tsx`：单条内容展示卡片
    - `src/components/tea-talk/TeaTalkForm.tsx`：发布表单
-5. **导航入口**：在 Header 导航栏添加“喝茶吧”链接。
+5. **导航入口**：在 Header 导航栏添加“喝茶吧”链接及用户状态显示。
 
 ## 11. 后续扩展建议
 

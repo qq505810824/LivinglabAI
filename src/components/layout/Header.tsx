@@ -1,14 +1,31 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, Search, Coffee, X } from 'lucide-react'
+import { Menu, Search, Coffee, X, User, Settings, LogOut, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/useAuth'
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
+  const { user, logout } = useAuth()
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
@@ -66,12 +83,59 @@ export function Header() {
         {/* Actions */}
         <div className="flex items-center gap-3">
 
-          <Link 
-            href="/login" 
-            className="hidden md:inline-flex bg-tea-500 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-tea-600 transition-colors shadow-sm hover:shadow"
-          >
-            登录
-          </Link>
+          {user ? (
+            <div className="hidden md:block relative" ref={userMenuRef}>
+              <button 
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center gap-2 hover:bg-tea-50 py-1.5 px-3 rounded-full transition-colors outline-none"
+              >
+                <img 
+                  src={user.avatar} 
+                  alt={user.username} 
+                  className="w-8 h-8 rounded-full border border-tea-200 object-cover" 
+                />
+                <span className="text-sm font-medium text-tea-800 max-w-[100px] truncate">{user.username}</span>
+              </button>
+
+              {/* Dropdown Menu */}
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-tea-100 py-2 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                  <div className="px-4 py-3 border-b border-tea-50">
+                    <p className="text-sm font-medium text-tea-900 truncate">{user.username}</p>
+                    <p className="text-xs text-earth-500 truncate">{user.email}</p>
+                  </div>
+                  
+                  <div className="py-1">
+                    <button 
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-earth-600 hover:bg-tea-50 hover:text-tea-700 transition-colors text-left"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
+                      <Settings className="w-4 h-4" />
+                      个人设置
+                    </button>
+                    
+                    <button 
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+                      onClick={() => {
+                        logout()
+                        setIsUserMenuOpen(false)
+                      }}
+                    >
+                      <LogOut className="w-4 h-4" />
+                      退出登录
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link 
+              href="/login" 
+              className="hidden md:inline-flex bg-tea-500 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-tea-600 transition-colors shadow-sm hover:shadow"
+            >
+              登录
+            </Link>
+          )}
 
           {/* Mobile Menu Button */}
           <button 
@@ -115,13 +179,36 @@ export function Header() {
             )
           })}
           <div className="pt-4 mt-2 border-t border-earth-100">
-            <Link 
-              href="/login" 
-              className="flex items-center justify-center w-full bg-tea-500 text-white px-4 py-3 rounded-full text-sm font-medium hover:bg-tea-600 transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              登录 / 注册
-            </Link>
+            {!user && (
+              <Link 
+                href="/login" 
+                className="px-4 py-3 text-center text-tea-600 font-medium bg-tea-50 rounded-lg"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                登录 / 注册
+              </Link>
+            )}
+            {user && (
+              <div className="flex items-center justify-between px-4 py-3 bg-tea-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <img 
+                    src={user.avatar} 
+                    alt={user.username} 
+                    className="w-8 h-8 rounded-full border border-tea-200 object-cover" 
+                  />
+                  <span className="text-sm font-medium text-tea-800">{user.username}</span>
+                </div>
+                <button 
+                  onClick={() => {
+                    logout()
+                    setIsMenuOpen(false)
+                  }} 
+                  className="text-sm text-red-600 font-medium"
+                >
+                  退出
+                </button>
+              </div>
+            )}
           </div>
         </nav>
       </div>
