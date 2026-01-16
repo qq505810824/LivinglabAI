@@ -19,6 +19,7 @@ export function Header() {
     { href: '/teas', label: '茶叶百科' },
     { href: '/culture', label: '茶文化' },
     { href: '/brewing', label: '冲泡指南' },
+    { href: '/tea-talk', label: '喝茶吧' },
     { href: '/about', label: '关于我们' },
   ]
 

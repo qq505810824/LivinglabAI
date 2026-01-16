@@ -303,7 +303,30 @@ vercel --prod
 - 环境变量在 Vercel 仪表盘中添加 `NEXT_PUBLIC_SUPABASE_URL` 和 `NEXT_PUBLIC_SUPABASE_ANON_KEY`  
 - 自定义域名可在 Vercel 中绑定
 
-## 9. 后续扩展建议
+## 10. 新增功能：喝茶吧 (Tea Talk)
+
+**功能描述**  
+打造一个开放的茶友交流空间，用户可以发表对喝茶的体会、对茶叶的认知或对茶文化的独特见解。
+
+**功能要求**  
+1. **内容展示**：  
+   - 列表显示所有用户发表的内容。
+   - 每条内容包含：标题（支持 #标签 高亮）、描述、图片、用户信息（姓名、头像）、发表时间。
+   - 交互：支持“赞”和“不赞”操作。
+2. **分页处理**：每页显示 20 条数据。
+3. **发布功能**：页面底部提供发布内容表单。
+4. **响应式布局**：完美适配移动端和 PC 端展示。
+
+**技术实现**  
+1. **数据模拟**：在 `src/datas/tea_talks.json` 中生成 50 条茶文化相关数据。
+2. **状态管理**：使用 `src/hooks/useTeaTalks.ts` 管理数据获取、分页、点赞及模拟发布。
+3. **路由结构**：新增页面 `src/app/(main)/tea-talk/page.tsx`。
+4. **组件拆分**：
+   - `src/components/tea-talk/TeaTalkCard.tsx`：单条内容展示卡片
+   - `src/components/tea-talk/TeaTalkForm.tsx`：发布表单
+5. **导航入口**：在 Header 导航栏添加“喝茶吧”链接。
+
+## 11. 后续扩展建议
 
 - 管理员后台（使用 Supabase Auth + 受保护路由）  
 - 评论系统（Supabase Table + 实时订阅）  
