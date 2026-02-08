@@ -1,5 +1,153 @@
-import HomePage from "./home/page";
+'use client';
+
+import { useMeets } from '@/hooks/useMeets';
+import { motion } from 'framer-motion';
+import { AlertCircle, Loader2, LogIn } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function Home() {
-    return <HomePage />;
-};
+    const router = useRouter();
+    const { getMeetByCode, loading, error } = useMeets();
+    const [meetingCode, setMeetingCode] = useState('');
+    const [validationError, setValidationError] = useState<string | null>(null);
+    const [isValidating, setIsValidating] = useState(false);
+
+    const handleJoinMeeting = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!meetingCode.trim()) {
+            setValidationError('请输入会议号');
+            return;
+        }
+
+        setIsValidating(true);
+        setValidationError(null);
+
+        try {
+            const meetData = await getMeetByCode(meetingCode.trim().toUpperCase());
+
+            if (meetData) {
+                // 检查会议状态
+                if (meetData.status === 'cancelled') {
+                    setValidationError('该会议已取消');
+                    setIsValidating(false);
+                    return;
+                }
+
+                // 验证成功，准备跳转
+                const code = meetingCode.trim().toUpperCase();
+
+                if (meetData.status === 'ended') {
+                    // 已结束的会议跳转到总结页面
+                    router.push(`/meet/${code}/summary`);
+                } else {
+                    // 未结束的会议跳转到对话页面
+                    router.push(`/meet/${code}`);
+                }
+                // 注意：跳转后组件会卸载，不需要重置状态
+            } else {
+                setValidationError('会议不存在');
+                setIsValidating(false);
+            }
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : '会议不存在或已过期';
+            setValidationError(errorMessage);
+            setIsValidating(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-teal-50 flex items-center justify-center px-4">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="w-full max-w-md"
+            >
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+                    {/* Logo/标题区域 */}
+                    <div className="text-center mb-8">
+                        <div className="inline-flex items-center justify-center w-20 h-20 bg-indigo-100 rounded-full mb-4">
+                            <LogIn className="w-10 h-10 text-indigo-600" />
+                        </div>
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">加入会议</h1>
+                        <p className="text-gray-600">输入会议号以加入AI语音对话会议</p>
+                    </div>
+
+                    {/* 输入表单 */}
+                    <form onSubmit={handleJoinMeeting} className="space-y-6">
+                        <div>
+                            <label htmlFor="meetingCode" className="block text-sm font-medium text-gray-700 mb-2">
+                                会议号
+                            </label>
+                            <input
+                                id="meetingCode"
+                                type="text"
+                                value={meetingCode}
+                                onChange={(e) => {
+                                    setMeetingCode(e.target.value.toUpperCase());
+                                    setValidationError(null);
+                                }}
+                                placeholder="请输入会议号（如：ABC123）"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center text-lg font-mono tracking-wider uppercase"
+                                disabled={isValidating}
+                                autoFocus
+                            />
+                        </div>
+
+                        {/* 错误提示 */}
+                        {validationError && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"
+                            >
+                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                <span>{validationError}</span>
+                            </motion.div>
+                        )}
+
+                        {/* 提交按钮 */}
+                        <button
+                            type="submit"
+                            disabled={isValidating || !meetingCode.trim()}
+                            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                        >
+                            {isValidating ? (
+                                <>
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    验证中...
+                                </>
+                            ) : (
+                                <>
+                                    <LogIn className="w-5 h-5" />
+                                    加入会议
+                                </>
+                            )}
+                        </button>
+                    </form>
+
+                    {/* 提示信息 */}
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                        <p className="text-xs text-gray-500 text-center">
+                            提示：会议号通常由6-8位字母或数字组成
+                            <br />
+                            如果会议已结束，将自动跳转到会议总结页面
+                        </p>
+                    </div>
+                </div>
+
+                {/* 底部链接 */}
+                <div className="mt-6 text-center">
+                    <button
+                        onClick={() => router.push('/admin/meets')}
+                        className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                    >
+                        管理员入口 →
+                    </button>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
