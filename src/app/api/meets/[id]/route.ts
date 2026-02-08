@@ -39,8 +39,8 @@ export async function GET(
         }
 
         // 获取相关对话和任务
-        const conversations = mockConversations.filter(c => c.meet_id === params.id);
-        const todos = mockTodos.filter(t => t.meet_id === params.id);
+        const conversations = mockConversations.filter(c => c.meet_id === resolvedParams.id);
+        const todos = mockTodos.filter(t => t.meet_id === resolvedParams.id);
 
         const response: ApiResponse<Meet & { conversations?: any[]; todos?: any[] }> = {
             success: true,
