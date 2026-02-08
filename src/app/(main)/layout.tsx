@@ -1,16 +1,16 @@
-import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { Header } from "@/components/layout/Header";
 
 export default function MainLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1">{children}</main>
-      <Footer />
-    </div>
-  );
+    return (
+        <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-indigo-100">
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+        </div>
+    );
 }
