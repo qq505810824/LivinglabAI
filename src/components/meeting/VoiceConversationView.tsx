@@ -29,10 +29,15 @@ export const VoiceConversationView = ({
 }: VoiceConversationViewProps) => {
     const [time, setTime] = useState(0);
     const router = useRouter();
+    const isEnded = meet.status === 'ended';
+
+    // 只有未结束的会议才启动计时器
     useEffect(() => {
-        const timer = setInterval(() => setTime(t => t + 1), 1000);
-        return () => clearInterval(timer);
-    }, []);
+        if (!isEnded) {
+            const timer = setInterval(() => setTime(t => t + 1), 1000);
+            return () => clearInterval(timer);
+        }
+    }, [isEnded]);
 
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
@@ -50,6 +55,24 @@ export const VoiceConversationView = ({
         return statusMap[status] || status;
     };
 
+    // 处理左侧返回按钮点击
+    const handleBackClick = () => {
+        if (isEnded) {
+            // 已结束的会议跳转到summary页面
+            router.push(`/meet/${meet.meeting_code}/summary`);
+        } else {
+            // 未结束的会议返回上一页
+            router.back();
+        }
+    };
+
+    const handleGoToSummary = () => {
+        if (isEnded) {
+            // 已结束的会议跳转到summary页面
+            router.push(`/meet/${meet.meeting_code}/summary`);
+        }  
+    };
+
     return (
         <div className="flex flex-col items-center justify-center  bg-gray-100 p-4">
             <motion.div
@@ -60,23 +83,31 @@ export const VoiceConversationView = ({
                 {/* WhatsApp Top Bar */}
                 <div className="absolute top-0 left-0 right-0 p-6 pt-4 z-20 flex flex-col justify-between items-start bg-gradient-to-b from-black/80 to-transparent">
                     <div className='w-full flex justify-between items-center'>
-                        <ArrowLeftIcon className="text-white cursor-pointer hover:opacity-80" size={32} onClick={() => router.back()} />
+                        <ArrowLeftIcon 
+                            className="text-white cursor-pointer hover:opacity-80" 
+                            size={32} 
+                            onClick={handleBackClick} 
+                        />
                         <div className="flex items-center gap-1.5 text-gray-300 text-[11px]  bg-black/20 px-2 py-0.5 rounded-full backdrop-blur-sm">
                             <Lock size={10} /> 端到端加密
                         </div>
-                        <span className="text-gray-200 text-[12px] font-medium drop-shadow-md">
-                            {formatTime(time)}
-                        </span>
+                        {!isEnded && (
+                            <span className="text-gray-200 text-[12px] font-medium drop-shadow-md">
+                                {formatTime(time)}
+                            </span>
+                        )}
+                        {isEnded && <div className="w-16" />} {/* 占位符保持居中 */}
                     </div>
 
                     <div className="w-full flex flex-col items-center justify-center">
-
                         <h2 className="text-white text-2xl font-semibold tracking-wide drop-shadow-md">
                             {meet.title || 'AI会议'}
                         </h2>
 
                         {meet.status && (
-                            <span className="text-gray-300 text-xs mt-1">
+                            <span className={`text-xs mt-1 font-medium ${
+                                isEnded ? 'text-red-400' : 'text-gray-300'
+                            }`}>
                                 {getStatusText(meet.status)}
                             </span>
                         )}
@@ -97,13 +128,20 @@ export const VoiceConversationView = ({
 
                     {/* AI Avatar */}
                     <div className="relative z-10 scale-110">
-                        <AIAvatar isSpeaking={status === 'speaking'} />
+                        <AIAvatar isSpeaking={status === 'speaking' && !isEnded} />
                     </div>
 
-                    {/* Status Indicator */}
-                    <div className="relative z-10 mt-4">
-                        <StatusIndicator status={status} />
-                    </div>
+                    {/* Status Indicator - 已结束的会议不显示等待中状态 */}
+                    {!isEnded && (
+                        <div className="relative z-10 mt-4">
+                            <StatusIndicator status={status} />
+                        </div>
+                    )}
+                    {isEnded && (
+                        <div className="relative z-10 mt-4">
+                            <span className="text-red-400 text-sm font-medium">会议已结束</span>
+                        </div>
+                    )}
 
                     {/* Conversation History - 只显示最后一次对话，显示在状态指示下方 */}
                     {conversations.length > 0 && (() => {
@@ -140,23 +178,27 @@ export const VoiceConversationView = ({
                         <div className="w-10 h-1.5 bg-gray-600 rounded-full opacity-50"></div>
                     </div>
                     <div className="flex items-center justify-between px-6 bg-[#1f2c34] rounded-full py-4 shadow-lg border border-white/5">
-                        <button className="text-gray-400 hover:text-white transition-colors p-1">
+                        <button className="text-gray-400 hover:text-white transition-colors p-1"
+                        onClick={handleGoToSummary}
+                        >
                             <MoreVertical size={26} />
                         </button>
 
                         {/* 录音按钮 - 居中，更大 */}
                         <button
                             onClick={isRecording ? onStopRecording : onStartRecording}
-                            disabled={status !== 'idle' && !isRecording}
+                            disabled={isEnded || (status !== 'idle' && !isRecording)}
                             className={`
                                 w-16 h-16 rounded-full flex items-center justify-center
                                 transition-all duration-300 shadow-lg
-                                ${isRecording
+                                ${isEnded
+                                    ? 'bg-gray-600 opacity-50 cursor-not-allowed'
+                                    : isRecording
                                     ? 'bg-red-500 hover:bg-red-600 scale-110 animate-pulse'
                                     : 'bg-indigo-600 hover:bg-indigo-700 scale-100'
                                 }
-                                ${status !== 'idle' && !isRecording ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                                active:scale-95
+                                ${status !== 'idle' && !isRecording && !isEnded ? 'opacity-50 cursor-not-allowed' : ''}
+                                ${!isEnded ? 'cursor-pointer active:scale-95' : ''}
                             `}
                         >
                             {isRecording ? (
@@ -166,8 +208,8 @@ export const VoiceConversationView = ({
                             )}
                         </button>
 
-                        {/* 挂断按钮 */}
-                        {onEndMeeting && (
+                        {/* 挂断按钮 - 已结束的会议不显示 */}
+                        {onEndMeeting && !isEnded && (
                             <button
                                 onClick={onEndMeeting}
                                 className="w-14 h-14 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg active:scale-95 transition-transform hover:bg-red-600"
@@ -175,6 +217,7 @@ export const VoiceConversationView = ({
                                 <Phone size={28} className="fill-current rotate-[135deg]" />
                             </button>
                         )}
+                        {isEnded && <div className="w-14" />} {/* 占位符保持居中 */}
                     </div>
                 </div>
             </motion.div>

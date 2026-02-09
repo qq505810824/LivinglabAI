@@ -1,4 +1,4 @@
-import { delay, mockConversations, mockMeets, mockTodos } from '@/lib/mock-data';
+import { supabaseAdmin } from '@/lib/supabase';
 import type { ApiResponse, Meet } from '@/types/meeting';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -8,8 +8,6 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
     try {
-        await delay(300);
-
         // 处理 Next.js 15+ 的异步 params
         const resolvedParams = await Promise.resolve(params);
         const id = resolvedParams.id;
@@ -25,34 +23,67 @@ export async function GET(
             );
         }
 
-        const meet = mockMeets.find(m => m.id === id);
+        // 查询会议
+        const { data: meet, error: meetError } = await supabaseAdmin
+            .from('meets')
+            .select('*')
+            .eq('id', id)
+            .single();
 
-        if (!meet) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: 'Not found',
-                    message: 'Meeting not found',
-                },
-                { status: 404 }
-            );
+        if (meetError) {
+            if (meetError.code === 'PGRST116' || meetError.message.includes('Results contain 0 rows')) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: 'Not found',
+                        message: 'Meeting not found',
+                    },
+                    { status: 404 }
+                );
+            }
+            throw new Error(`Failed to fetch meet: ${meetError.message}`);
         }
 
-        // 获取相关对话和任务
-        const conversations = mockConversations.filter(c => c.meet_id === resolvedParams.id);
-        const todos = mockTodos.filter(t => t.meet_id === resolvedParams.id);
+        // 获取相关对话、任务和总结
+        const [
+            { data: conversations, error: convError },
+            { data: todos, error: todoError },
+            { data: summary, error: summaryError },
+        ] = await Promise.all([
+            supabaseAdmin.from('conversations').select('*').eq('meet_id', id).order('created_at', { ascending: true }),
+            supabaseAdmin.from('todos').select('*').eq('meet_id', id).order('created_at', { ascending: false }),
+            supabaseAdmin.from('meet_summaries').select('*').eq('meet_id', id).maybeSingle(),
+        ]);
 
-        const response: ApiResponse<Meet & { conversations?: any[]; todos?: any[] }> = {
+        if (convError) {
+            console.warn('Failed to fetch conversations for meet:', id, convError.message);
+        }
+        if (todoError) {
+            console.warn('Failed to fetch todos for meet:', id, todoError.message);
+        }
+        if (summaryError) {
+            console.warn('Failed to fetch summary for meet:', id, summaryError.message);
+        }
+
+        const response: ApiResponse<
+            Meet & {
+                conversations?: any[];
+                todos?: any[];
+                summary?: any;
+            }
+        > = {
             success: true,
             data: {
-                ...meet,
-                conversations,
-                todos,
+                ...(meet as Meet),
+                conversations: conversations || [],
+                todos: todos || [],
+                summary: summary || null,
             },
         };
 
         return NextResponse.json(response);
     } catch (error) {
+        console.error('Error in GET /api/meets/[id]:', error);
         return NextResponse.json(
             {
                 success: false,

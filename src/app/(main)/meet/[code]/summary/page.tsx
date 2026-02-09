@@ -13,7 +13,7 @@ export default function MeetSummaryPage() {
     const router = useRouter();
     const meetingCode = params.code as string;
 
-    const { getMeetByCode, loading: meetLoading } = useMeets();
+    const { getMeetByCode, getMeetById, loading: meetLoading } = useMeets();
     const { getTodos, generateTodos, updateTodo, confirmTodo, loading: todosLoading } = useTodos();
     const { getConversations, loading: conversationsLoading } = useConversations();
     const [todos, setTodos] = useState<Todo[]>([]);
@@ -37,33 +37,67 @@ export default function MeetSummaryPage() {
         try {
             const meetData = await getMeetByCode(meetingCode);
             if (meetData) {
-                // 加载对话记录
-                try {
-                    const conversationsData = await getConversations({ meetId: meetData.id, limit: 100 });
-                    if (conversationsData) {
-                        // 按时间排序（从早到晚）
-                        const sortedConversations = [...conversationsData.conversations].sort(
+                // 获取完整会议信息（包含summary、conversations、todos）
+                const fullMeet = await getMeetById(meetData.id);
+
+                // 从会议详情中获取对话记录、todos和summary
+                if (fullMeet) {
+                    // 设置对话记录（从Supabase获取）
+                    if (fullMeet.conversations && Array.isArray(fullMeet.conversations)) {
+                        const sortedConversations = [...fullMeet.conversations].sort(
                             (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
                         );
                         setConversations(sortedConversations);
                     }
-                } catch (err) {
-                    console.error('Failed to load conversations:', err);
+
+                    // 设置todos（从Supabase获取）
+                    if (fullMeet.todos && Array.isArray(fullMeet.todos)) {
+                        setTodos(fullMeet.todos);
+                    }
+
+                    // 设置summary（从Supabase获取）
+                    if (fullMeet.summary && typeof fullMeet.summary === 'object' && 'summary' in fullMeet.summary) {
+                        setSummary((fullMeet.summary as any).summary || '');
+                    }
                 }
 
-                // 生成任务
-                setIsGenerating(true);
-                const generated = await generateTodos(meetData.id);
-                if (generated) {
-                    setTodos(generated.todos);
-                    setSummary(generated.summary);
-                }
-                setIsGenerating(false);
-
-                // 加载已有任务
+                // 检查是否已有summary和todos
                 const todosData = await getTodos({ meetId: meetData.id });
-                if (todosData) {
-                    setTodos(todosData.todos);
+                const hasSummary = (fullMeet as any)?.summary && typeof (fullMeet as any).summary === 'object';
+                const hasTodos = todosData && todosData.todos.length > 0;
+
+                // 如果还没有summary和todos，则生成（会议刚结束时）
+                if (!hasSummary && !hasTodos) {
+                    setIsGenerating(true);
+                    try {
+                        const generated = await generateTodos(meetData.id);
+                        if (generated) {
+                            setTodos(generated.todos);
+                            // generated.summary 是 MeetSummary 对象
+                            if (generated.summary && typeof generated.summary === 'object' && 'summary' in generated.summary) {
+                                setSummary((generated.summary as any).summary);
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Failed to generate todos:', err);
+                    } finally {
+                        setIsGenerating(false);
+                    }
+                } else if (hasTodos && !hasSummary) {
+                    // 如果已有todos但没有summary，只生成summary
+                    setIsGenerating(true);
+                    try {
+                        const generated = await generateTodos(meetData.id);
+                        if (generated && generated.summary) {
+                            if (typeof generated.summary === 'object' && 'summary' in generated.summary) {
+                                setSummary((generated.summary as any).summary);
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Failed to generate summary:', err);
+                    } finally {
+                        setIsGenerating(false);
+                    }
                 }
             }
         } catch (err) {

@@ -51,7 +51,7 @@ export default function Home() {
                 setIsValidating(false);
             }
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : '会议不存在或已过期';
+            const errorMessage = '会议不存在或已过期';
             setValidationError(errorMessage);
             setIsValidating(false);
         }
@@ -96,17 +96,7 @@ export default function Home() {
                             />
                         </div>
 
-                        {/* 错误提示 */}
-                        {validationError && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"
-                            >
-                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                                <span>{validationError}</span>
-                            </motion.div>
-                        )}
+
 
                         {/* 提交按钮 */}
                         <button
@@ -126,6 +116,19 @@ export default function Home() {
                                 </>
                             )}
                         </button>
+
+                        {/* 错误提示 */}
+                        {validationError && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"
+                            >
+                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                <span>{validationError}</span>
+                            </motion.div>
+                        )}
+
                     </form>
 
                     {/* 提示信息 */}

@@ -47,6 +47,51 @@ export const useUser = () => {
     }
   }, []);
 
+  const getCurrentUser = useCallback(async (token: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/users/current', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data: ApiResponse<{
+        id: string;
+        name: string | null;
+        email: string | null;
+        role: string;
+        avatar_url: string | null;
+        meta: {
+          platform: {
+            platform: string;
+            platform_user_id: string;
+            platform_username: string | null;
+            platform_display_name: string | null;
+            created_at: string;
+          };
+        };
+        createdAt: string;
+        updatedAt: string;
+      }> = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch current user');
+      }
+
+      return data.data;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const getUserById = useCallback(async (id: string) => {
     setLoading(true);
     setError(null);
@@ -90,6 +135,7 @@ export const useUser = () => {
     loading,
     error,
     identifyUser,
+    getCurrentUser,
     getUserById,
   };
 };

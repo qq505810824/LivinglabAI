@@ -1,12 +1,10 @@
-import { delay, mockTodos, mockUsers } from '@/lib/mock-data';
+import { supabaseAdmin } from '@/lib/supabase';
 import type { ApiResponse, Todo } from '@/types/meeting';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/todos - 获取任务列表
 export async function GET(request: NextRequest) {
     try {
-        await delay(300);
-
         const searchParams = request.nextUrl.searchParams;
         const meetId = searchParams.get('meetId');
         const status = searchParams.get('status');
@@ -16,67 +14,75 @@ export async function GET(request: NextRequest) {
         const sortBy = searchParams.get('sortBy') || 'created_at'; // 排序字段
         const order = searchParams.get('order') || 'desc'; // 排序顺序
 
-        let filteredTodos = [...mockTodos];
+        let query = supabaseAdmin.from('todos').select('*');
 
         // 按会议ID筛选
         if (meetId) {
-            filteredTodos = filteredTodos.filter(t => t.meet_id === meetId);
+            query = query.eq('meet_id', meetId);
         }
 
         // 按状态筛选
         if (status) {
-            filteredTodos = filteredTodos.filter(t => t.status === status);
-        }
-
-        // 按系统用户ID筛选
-        if (assigneeId) {
-            filteredTodos = filteredTodos.filter(t => t.assignee_id === assigneeId);
+            query = query.eq('status', status);
         }
 
         // 按平台信息筛选（通过平台ID查找系统用户ID）
         if (platform && platformUserId) {
-            // 查找匹配的用户
-            const matchedUser = mockUsers.find(u => {
-                return u.meta?.platform?.platform === platform && u.meta?.platform?.platform_user_id === platformUserId;
-            });
+            // 先查找匹配的用户
+            // 使用 JSONB 查询语法：meta->'platform'->>'platform'
+            const { data: matchedUsers, error: userError } = await supabaseAdmin
+                .from('users')
+                .select('id')
+                .eq("meta->'platform'->>'platform'", platform)
+                .eq("meta->'platform'->>'platform_user_id'", platformUserId)
+                .limit(1);
 
-            if (matchedUser) {
-                // 筛选该用户的任务
-                filteredTodos = filteredTodos.filter(t => t.assignee_id === matchedUser.id);
+            if (userError) {
+                throw new Error(`Failed to find user: ${userError.message}`);
+            }
+
+            if (matchedUsers && matchedUsers.length > 0) {
+                // 使用找到的用户ID筛选任务
+                query = query.eq('assignee_id', matchedUsers[0].id);
             } else {
                 // 如果找不到用户，返回空列表
-                filteredTodos = [];
+                const response: ApiResponse<{
+                    todos: Todo[];
+                    total: number;
+                }> = {
+                    success: true,
+                    data: {
+                        todos: [],
+                        total: 0,
+                    },
+                };
+                return NextResponse.json(response);
             }
+        } else if (assigneeId) {
+            // 按系统用户ID筛选
+            query = query.eq('assignee_id', assigneeId);
         }
 
         // 排序
-        filteredTodos.sort((a, b) => {
-            let aValue: any;
-            let bValue: any;
+        const orderByColumn = sortBy === 'due_date' ? 'due_date' : sortBy === 'priority' ? 'priority' : 'created_at';
+        query = query.order(orderByColumn, { ascending: order === 'asc' });
 
-            switch (sortBy) {
-                case 'due_date':
-                    aValue = a.due_date ? new Date(a.due_date).getTime() : 0;
-                    bValue = b.due_date ? new Date(b.due_date).getTime() : 0;
-                    break;
-                case 'priority':
-                    const priorityOrder = { high: 3, medium: 2, low: 1 };
-                    aValue = priorityOrder[a.priority] || 0;
-                    bValue = priorityOrder[b.priority] || 0;
-                    break;
-                case 'created_at':
-                default:
-                    aValue = new Date(a.created_at).getTime();
-                    bValue = new Date(b.created_at).getTime();
-                    break;
-            }
+        const { data: todos, error } = await query;
 
-            if (order === 'asc') {
-                return aValue - bValue;
-            } else {
-                return bValue - aValue;
-            }
-        });
+        if (error) {
+            throw new Error(`Failed to fetch todos: ${error.message}`);
+        }
+
+        // 手动处理优先级排序（如果按优先级排序）
+        let sortedTodos = todos || [];
+        if (sortBy === 'priority') {
+            const priorityOrder = { high: 3, medium: 2, low: 1 };
+            sortedTodos = sortedTodos.sort((a, b) => {
+                const aValue = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+                const bValue = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+                return order === 'asc' ? aValue - bValue : bValue - aValue;
+            });
+        }
 
         const response: ApiResponse<{
             todos: Todo[];
@@ -84,13 +90,14 @@ export async function GET(request: NextRequest) {
         }> = {
             success: true,
             data: {
-                todos: filteredTodos,
-                total: filteredTodos.length,
+                todos: sortedTodos as Todo[],
+                total: sortedTodos.length,
             },
         };
 
         return NextResponse.json(response);
     } catch (error) {
+        console.error('Error in GET /api/todos:', error);
         return NextResponse.json(
             {
                 success: false,
@@ -105,8 +112,6 @@ export async function GET(request: NextRequest) {
 // POST /api/todos - 创建任务
 export async function POST(request: NextRequest) {
     try {
-        await delay(300);
-
         const body = await request.json();
         const { meetId, title, description, assigneeId, dueDate, reminderTime, priority } = body;
 
@@ -121,29 +126,39 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const newTodo: Todo = {
-            id: crypto.randomUUID(),
-            meet_id: meetId,
-            title,
-            description: description || null,
-            assignee_id: assigneeId || null,
-            status: 'draft',
-            priority: priority || 'medium',
-            due_date: dueDate || null,
-            reminder_time: reminderTime || null,
-            source: 'manual',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            completed_at: null,
-        };
+        const now = new Date().toISOString();
+
+        const { data: newTodo, error } = await supabaseAdmin
+            .from('todos')
+            .insert({
+                meet_id: meetId,
+                title,
+                description: description || null,
+                assignee_id: assigneeId || null,
+                status: 'draft',
+                priority: priority || 'medium',
+                due_date: dueDate || null,
+                reminder_time: reminderTime || null,
+                source: 'manual',
+                created_at: now,
+                updated_at: now,
+                completed_at: null,
+            })
+            .select()
+            .single();
+
+        if (error) {
+            throw new Error(`Failed to create todo: ${error.message}`);
+        }
 
         const response: ApiResponse<Todo> = {
             success: true,
-            data: newTodo,
+            data: newTodo as Todo,
         };
 
         return NextResponse.json(response, { status: 201 });
     } catch (error) {
+        console.error('Error in POST /api/todos:', error);
         return NextResponse.json(
             {
                 success: false,

@@ -64,10 +64,11 @@ export function Header() {
                     </button>
                     <div className="flex items-center gap-3 pl-6 border-l border-gray-200">
                         <div className="text-right hidden md:block">
-                            <p className="text-sm font-semibold text-gray-900">Admin User</p>
-                            <p className="text-xs text-gray-500">HR Manager</p>
+                            <p className="text-md font-semibold text-gray-900">{user?.username}</p>
+                            <p className="text-xs text-gray-500">{user?.email}</p>
                         </div>
                         <div className="w-10 h-10 bg-gray-900 rounded-full overflow-hidden border-2 border-gray-200 flex items-center justify-center text-white text-sm font-medium shadow-sm">
+                            {/* {user?.avatar} */}
                             HR
                         </div>
                     </div>

@@ -49,6 +49,8 @@ export interface Conversation {
     user_message_text: string;
     user_audio_duration: number | null;
     ai_response_text: string;
+    ai_audio_url?: string | null;
+    ai_audio_duration?: number | null;
     user_sent_at: string;
     ai_responded_at: string;
     created_at: string;

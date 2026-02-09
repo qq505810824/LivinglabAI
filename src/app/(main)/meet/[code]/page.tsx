@@ -3,9 +3,11 @@
 import { EndMeetingModal } from '@/components/meeting/EndMeetingModal';
 import { ProcessingView } from '@/components/meeting/ProcessingView';
 import { VoiceConversationView } from '@/components/meeting/VoiceConversationView';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMeets } from '@/hooks/useMeets';
 import { useUser } from '@/hooks/useUser';
 import { useVoiceConversation } from '@/hooks/useVoiceConversation';
+import { supabase } from '@/lib/supabase';
 import type { Meet } from '@/types/meeting';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -16,51 +18,66 @@ export default function MeetPage() {
     const meetingCode = params.code as string;
 
     const { getMeetByCode, getMeetById, updateMeetStatus, loading: meetLoading } = useMeets();
-    const { identifyUser } = useUser();
+    const { identifyUser, getCurrentUser } = useUser();
+    const { user: authUser } = useAuth();
     const [meet, setMeet] = useState<Meet | null>(null);
     const [userId, setUserId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [showEndMeetingModal, setShowEndMeetingModal] = useState(false);
 
-    // 从URL参数获取平台信息
+    // 从URL参数获取平台信息并识别用户
     useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const platform = urlParams.get('platform') as 'telegram' | 'whatsapp' | 'web' | null;
-        const platformUserId = urlParams.get('userId');
+        const identifyPlatformUser = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const platform = urlParams.get('platform') as 'telegram' | 'whatsapp' | 'web' | null;
+            const platformUserId = urlParams.get('userId');
 
-        // 识别或创建用户
-        if (platform && platformUserId) {
-            identifyUser({
-                platform,
-                platformUserId,
-                platformUsername: urlParams.get('username') || undefined,
-                platformDisplayName: urlParams.get('displayName') || undefined,
-            })
-                .then((user) => {
+            // 如果是 web 平台或没有 platform 参数，使用 Supabase Auth 的当前登录用户
+            if (platform === 'web' || !platform || !platformUserId) {
+                try {
+                    // 获取当前 Supabase Auth session
+                    const {
+                        data: { session },
+                    } = await supabase.auth.getSession();
+
+                    if (session?.user && session.access_token) {
+                        // 使用 token 获取当前用户信息
+                        const currentUser = await getCurrentUser(session.access_token);
+                        if (currentUser) {
+                            setUserId(currentUser.id);
+                            return;
+                        }
+                    }
+
+                    // 如果没有登录，显示错误
+                    setError('请先登录');
+                } catch (err) {
+                    console.error('Failed to get current user:', err);
+                    setError('请先登录');
+                }
+            } else if (platform === 'telegram' || platform === 'whatsapp') {
+                // 如果是 telegram 或 whatsapp 平台，通过 identify API 识别或创建用户
+                try {
+                    const user = await identifyUser({
+                        platform,
+                        platformUserId,
+                        platformUsername: urlParams.get('username') || undefined,
+                        platformDisplayName: urlParams.get('displayName') || undefined,
+                    });
+
                     if (user) {
                         setUserId(user.id);
                     }
-                })
-                .catch((err) => {
+                } catch (err) {
                     console.error('Failed to identify user:', err);
-                });
-        } else {
-            // 默认使用web平台
-            identifyUser({
-                platform: 'web',
-                platformUserId: `web-${Date.now()}`,
-            })
-                .then((user) => {
-                    if (user) {
-                        setUserId(user.id);
-                    }
-                })
-                .catch((err) => {
-                    console.error('Failed to identify user:', err);
-                });
-        }
-    }, []);
+                    setError('用户识别失败');
+                }
+            }
+        };
+
+        identifyPlatformUser();
+    }, [identifyUser, getCurrentUser]);
 
     // 加载会议信息
     useEffect(() => {
@@ -108,12 +125,12 @@ export default function MeetPage() {
 
     const handleConfirmEndMeeting = async () => {
         setShowEndMeetingModal(false);
-        if (meet) {
+        if (meet && userId) {
             setIsProcessing(true);
             try {
-                // 更新会议状态
-                await updateMeetStatus(meet.id, 'ended');
-                // ProcessingView 会在完成后调用 handleProcessingComplete
+                // 1. 保存对话记录到 Supabase
+                // 对话记录会通过 VoiceConversationContainer 传递过来
+                // 这里先调用，实际保存会在 handleConfirmEndMeetingWithReset 中完成
             } catch (err) {
                 console.error('Failed to end meeting:', err);
                 setIsProcessing(false);
@@ -181,6 +198,8 @@ export default function MeetPage() {
             showEndMeetingModal={showEndMeetingModal}
             onConfirmEndMeeting={handleConfirmEndMeeting}
             onCancelEndMeeting={handleCancelEndMeeting}
+            onProcessingStart={() => setIsProcessing(true)}
+            onProcessingComplete={handleProcessingComplete}
         />
     );
 }
@@ -192,6 +211,8 @@ function VoiceConversationContainer({
     showEndMeetingModal,
     onConfirmEndMeeting,
     onCancelEndMeeting,
+    onProcessingStart,
+    onProcessingComplete,
 }: {
     meet: Meet;
     userId: string;
@@ -199,6 +220,8 @@ function VoiceConversationContainer({
     showEndMeetingModal: boolean;
     onConfirmEndMeeting: () => void;
     onCancelEndMeeting: () => void;
+    onProcessingStart: () => void;
+    onProcessingComplete: () => void;
 }) {
     const {
         conversations,
@@ -210,7 +233,7 @@ function VoiceConversationContainer({
     } = useVoiceConversation(meet, userId);
 
     // 确认结束会议时的处理
-    const handleConfirmEndMeetingWithReset = () => {
+    const handleConfirmEndMeetingWithReset = async () => {
         // 打印所有对话记录
         console.log('=== 会议对话记录（本地） ===');
         console.log(`会议ID: ${meet.id}`);
@@ -228,10 +251,60 @@ function VoiceConversationContainer({
         });
         console.log('=== 对话记录结束 ===');
 
-        // 重置 conversation_id
-        resetConversation();
-        // 调用父组件的确认处理
-        onConfirmEndMeeting();
+        // 开始处理流程
+        onProcessingStart();
+
+        try {
+            // 1. 保存对话记录到 Supabase
+            if (conversations.length > 0) {
+                const saveConvResponse = await fetch('/api/conversations/batch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ conversations }),
+                });
+
+                if (!saveConvResponse.ok) {
+                    const errorData = await saveConvResponse.json();
+                    throw new Error(errorData.message || 'Failed to save conversations');
+                }
+            }
+
+            // 2. 更新会议状态
+            await fetch(`/api/meets/${meet.id}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: 'ended' }),
+            });
+
+            // 3. 生成会议总结和任务列表
+            const generateResponse = await fetch('/api/todos/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ meetId: meet.id, userId }),
+            });
+
+            if (!generateResponse.ok) {
+                const errorData = await generateResponse.json();
+                console.warn('Failed to generate summary and todos:', errorData.message);
+                // 不阻止流程继续，因为总结和任务可以后续手动生成
+            }
+
+            // 重置 conversation_id
+            resetConversation();
+
+            // 处理完成，跳转到总结页面
+            onProcessingComplete();
+        } catch (error) {
+            console.error('Failed to end meeting:', error);
+            // 即使出错也跳转，让用户可以看到已有的数据
+            onProcessingComplete();
+        }
     };
 
     return (

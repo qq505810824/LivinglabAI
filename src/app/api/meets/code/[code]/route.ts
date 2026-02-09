@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { mockMeets, delay } from '@/lib/mock-data';
+import { supabaseAdmin } from '@/lib/supabase';
 import type { ApiResponse } from '@/types/meeting';
+import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/meets/code/[code] - 通过会议号查找会议
 export async function GET(
@@ -8,8 +8,6 @@ export async function GET(
   { params }: { params: Promise<{ code: string }> | { code: string } }
 ) {
   try {
-    await delay(300);
-
     // 处理 Next.js 15+ 的异步 params
     const resolvedParams = await Promise.resolve(params);
     const code = resolvedParams.code;
@@ -25,20 +23,26 @@ export async function GET(
       );
     }
 
-    const meet = mockMeets.find(m => 
-      m.meeting_code && code && 
-      m.meeting_code.toUpperCase() === code.toUpperCase()
-    );
+    // 从 Supabase 按会议号查询（会议号在前端已转为大写，这里按精确匹配）
+    const { data: meet, error } = await supabaseAdmin
+      .from('meets')
+      .select('id, meeting_code, title, status, join_url')
+      .eq('meeting_code', code)
+      .limit(1)
+      .single();
 
-    if (!meet) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Not found',
-          message: 'Meeting not found',
-        },
-        { status: 404 }
-      );
+    if (error) {
+      if (error.code === 'PGRST116' || error.message.includes('Results contain 0 rows')) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Not found',
+            message: 'Meeting not found',
+          },
+          { status: 404 }
+        );
+      }
+      throw new Error(`Failed to fetch meet by code: ${error.message}`);
     }
 
     const response: ApiResponse<{
@@ -60,6 +64,7 @@ export async function GET(
 
     return NextResponse.json(response);
   } catch (error) {
+    console.error('Error in GET /api/meets/code/[code]:', error);
     return NextResponse.json(
       {
         success: false,
