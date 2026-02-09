@@ -41,19 +41,31 @@ export async function GET(
     const response: ApiResponse<{
       id: string;
       name: string | null;
-      platform: string;
-      platformUserId: string;
-      platformUsername: string | null;
+      email: string | null;
+      role: string;
+      avatar_url: string | null;
+      meta: {
+        platform: {
+          platform: string;
+          platform_user_id: string;
+          platform_username: string | null;
+          platform_display_name: string | null;
+          created_at: string;
+        };
+      };
       createdAt: string;
+      updatedAt: string;
     }> = {
       success: true,
       data: {
         id: user.id,
         name: user.name,
-        platform: user.platform,
-        platformUserId: user.platform_user_id,
-        platformUsername: user.platform_username,
+        email: user.email,
+        role: user.role,
+        avatar_url: user.avatar_url,
+        meta: user.meta,
         createdAt: user.created_at,
+        updatedAt: user.updated_at,
       },
     };
 

@@ -20,9 +20,16 @@ export const useUser = () => {
 
       const data: ApiResponse<{
         id: string;
-        platform: string;
-        platformUserId: string;
         name: string | null;
+        meta: {
+          platform: {
+            platform: string;
+            platform_user_id: string;
+            platform_username: string | null;
+            platform_display_name: string | null;
+            created_at: string;
+          };
+        };
         isNewUser: boolean;
       }> = await response.json();
 
@@ -49,10 +56,20 @@ export const useUser = () => {
       const data: ApiResponse<{
         id: string;
         name: string | null;
-        platform: string;
-        platformUserId: string;
-        platformUsername: string | null;
+        email: string | null;
+        role: string;
+        avatar_url: string | null;
+        meta: {
+          platform: {
+            platform: string;
+            platform_user_id: string;
+            platform_username: string | null;
+            platform_display_name: string | null;
+            created_at: string;
+          };
+        };
         createdAt: string;
+        updatedAt: string;
       }> = await response.json();
 
       if (!data.success) {

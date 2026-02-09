@@ -1,14 +1,25 @@
+// 平台信息类型
+export interface PlatformInfo {
+  platform: 'telegram' | 'whatsapp' | 'web' | 'other';
+  platform_user_id: string;
+  platform_username: string | null;
+  platform_display_name: string | null;
+  created_at: string;
+}
+
+// 用户meta类型（只支持单个平台）
+export interface UserMeta {
+  platform: PlatformInfo;
+}
+
 // 用户类型
 export interface User {
   id: string;
   email: string | null;
   name: string | null;
   role: 'admin' | 'user';
-  platform: 'telegram' | 'whatsapp' | 'web' | 'other';
-  platform_user_id: string;
-  platform_username: string | null;
-  platform_display_name: string | null;
   avatar_url: string | null;
+  meta: UserMeta;
   created_at: string;
   updated_at: string;
 }

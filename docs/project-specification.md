@@ -107,9 +107,10 @@
 1. 通过openclaw推送的会议链接进入（链接包含平台信息，如：?platform=telegram&userId=123456）
 2. 系统识别平台和用户ID：
    a. 从URL参数获取平台类型（telegram/whatsapp等）和用户ID
-   b. 查询用户表，检查是否存在该平台ID的用户
-   c. 如果不存在，自动创建新用户账户，记录平台类型和平台ID
-   d. 如果存在，直接关联现有用户
+   b. 调用 /api/users/identify，在用户表的meta.platform中查找匹配的平台信息
+   c. 如果不存在匹配的用户，自动创建新用户账户，在meta.platform中设置平台信息
+   d. 如果用户存在，更新平台信息（如果有新信息）
+   e. 每个用户只能关联一个平台
 3. 系统验证会议是否存在且可加入
 4. 进入对话页面，显示：
    - 会议标题
@@ -209,16 +210,25 @@ CREATE TABLE users (
   name VARCHAR(255), -- 可选，可从平台获取或用户设置
   role VARCHAR(50) DEFAULT 'user', -- 'admin' | 'user'
   avatar_url TEXT,
-  -- 平台信息
-  platform VARCHAR(50) NOT NULL, -- 'telegram' | 'whatsapp' | 'web' | 'other'
-  platform_user_id VARCHAR(255) NOT NULL, -- 平台特有的用户ID
-  platform_username VARCHAR(255), -- 平台用户名（如Telegram username）
-  platform_display_name VARCHAR(255), -- 平台显示名称
-  -- 唯一约束：同一平台的同一用户ID只能有一个账户
-  UNIQUE(platform, platform_user_id),
+  -- 平台信息（使用meta JSONB存储，只支持单个平台）
+  meta JSONB NOT NULL DEFAULT '{}', -- 存储平台信息，格式：{"platform": {"platform": "telegram", "platform_user_id": "123456789", "platform_username": "zhangsan", "platform_display_name": "张三", "created_at": "2024-01-02T00:00:00Z"}}
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- meta字段示例结构（只支持单个平台）：
+-- {
+--   "platform": {
+--     "platform": "telegram",
+--     "platform_user_id": "123456789",
+--     "platform_username": "zhangsan",
+--     "platform_display_name": "张三",
+--     "created_at": "2024-01-02T00:00:00Z"
+--   }
+-- }
+
+-- 创建GIN索引以支持高效的JSONB查询
+CREATE INDEX idx_users_meta_platform ON users USING GIN ((meta->'platform'));
 ```
 
 #### 4.1.2 meets (会议表)
@@ -350,8 +360,9 @@ CREATE INDEX idx_todos_status ON todos(status);
 CREATE INDEX idx_todos_assignee_id ON todos(assignee_id);
 CREATE INDEX idx_todos_reminder_time ON todos(reminder_time);
 
--- 用户表索引
-CREATE INDEX idx_users_platform_user_id ON users(platform, platform_user_id);
+-- 用户表索引（meta字段的GIN索引已在表定义中创建）
+-- 如果需要通过特定平台ID快速查询，可以使用以下索引：
+-- CREATE INDEX idx_users_meta_platform ON users USING GIN ((meta->'platform'));
 
 -- AI语音回复表索引
 CREATE INDEX idx_audio_responses_conversation_id ON audio_responses(conversation_id);
@@ -566,7 +577,23 @@ Response:
 
 #### 5.4.2 获取任务列表
 ```typescript
-GET /api/todos?meetId={meetId}&status={status}&assigneeId={assigneeId}
+GET /api/todos?meetId={meetId}&status={status}&assigneeId={assigneeId}&platform={platform}&platformUserId={platformUserId}&sortBy={sortBy}&order={order}
+
+Query Parameters:
+- meetId?: string - 会议ID（可选）
+- status?: string - 任务状态筛选（可选，'draft' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'）
+- assigneeId?: string - 负责人ID（系统用户ID，可选）
+- platform?: string - 平台类型（可选，'telegram' | 'whatsapp' | 'web'等）
+- platformUserId?: string - 平台用户ID（可选，需配合platform使用）
+- sortBy?: string - 排序字段（可选，'created_at' | 'due_date' | 'priority'，默认'created_at'）
+- order?: string - 排序顺序（可选，'asc' | 'desc'，默认'desc'）
+
+说明：
+- 可以通过系统用户ID（assigneeId）查询该用户的所有任务
+- 也可以通过平台信息（platform + platformUserId）查询该平台用户的所有任务
+- 支持按状态筛选
+- 默认按创建时间倒序排列（最新的在前）
+- 可以指定排序字段和排序顺序
 
 Response:
 {
@@ -696,7 +723,7 @@ Response:
 POST /api/users/identify
 Request Body:
 {
-  platform: 'telegram' | 'whatsapp' | 'web';
+  platform: 'telegram' | 'whatsapp' | 'web' | 'other';
   platformUserId: string; // 平台用户ID
   platformUsername?: string; // 平台用户名（可选）
   platformDisplayName?: string; // 平台显示名称（可选）
@@ -706,13 +733,26 @@ Response:
 {
   success: true;
   data: {
-    id: string;
-    platform: string;
-    platformUserId: string;
-    name: string;
+    id: string; // 系统用户ID
+    name: string | null;
+    meta: {
+      platform: {
+        platform: string;
+        platform_user_id: string;
+        platform_username: string | null;
+        platform_display_name: string | null;
+        created_at: string;
+      };
+    };
     isNewUser: boolean; // 是否为新创建的用户
   }
 }
+
+说明：
+- 系统会在meta.platform中查找匹配的平台信息（只支持单个平台）
+- 如果找到匹配的用户，返回现有用户ID并更新平台信息
+- 如果未找到，创建新用户并在meta.platform中设置平台信息
+- 每个用户只能关联一个平台
 ```
 
 #### 5.6.2 获取用户信息
@@ -724,11 +764,21 @@ Response:
   success: true;
   data: {
     id: string;
-    name: string;
-    platform: string;
-    platformUserId: string;
-    platformUsername: string;
+    name: string | null;
+    email: string | null;
+    role: string;
+    avatar_url: string | null;
+      meta: {
+        platform: {
+          platform: string;
+          platform_user_id: string;
+          platform_username: string | null;
+          platform_display_name: string | null;
+          created_at: string;
+        };
+      };
     createdAt: string;
+    updatedAt: string;
   }
 }
 ```
@@ -946,36 +996,54 @@ Response:
     "email": "admin@example.com",
     "name": "系统管理员",
     "role": "admin",
-    "platform": "web",
-    "platform_user_id": "admin-001",
-    "platform_username": null,
-    "platform_display_name": "系统管理员",
     "avatar_url": null,
-    "created_at": "2024-01-01T00:00:00Z"
+    "meta": {
+      "platform": {
+        "platform": "web",
+        "platform_user_id": "admin-001",
+        "platform_username": null,
+        "platform_display_name": "系统管理员",
+        "created_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-01T00:00:00Z"
   },
   {
     "id": "user-002",
     "email": null,
     "name": "张三",
     "role": "user",
-    "platform": "telegram",
-    "platform_user_id": "123456789",
-    "platform_username": "zhangsan",
-    "platform_display_name": "张三",
     "avatar_url": null,
-    "created_at": "2024-01-02T00:00:00Z"
+    "meta": {
+      "platform": {
+        "platform": "telegram",
+        "platform_user_id": "123456789",
+        "platform_username": "zhangsan",
+        "platform_display_name": "张三",
+        "created_at": "2024-01-02T00:00:00Z"
+      }
+    },
+    "created_at": "2024-01-02T00:00:00Z",
+    "updated_at": "2024-01-02T00:00:00Z"
   },
   {
     "id": "user-003",
     "email": null,
     "name": "李四",
     "role": "user",
-    "platform": "whatsapp",
-    "platform_user_id": "+8613800138000",
-    "platform_username": null,
-    "platform_display_name": "李四",
     "avatar_url": null,
-    "created_at": "2024-01-03T00:00:00Z"
+    "meta": {
+      "platform": {
+        "platform": "whatsapp",
+        "platform_user_id": "+8613800138000",
+        "platform_username": null,
+        "platform_display_name": "李四",
+        "created_at": "2024-01-03T00:00:00Z"
+      }
+    },
+    "created_at": "2024-01-03T00:00:00Z",
+    "updated_at": "2024-01-03T00:00:00Z"
   }
 ]
 ```
