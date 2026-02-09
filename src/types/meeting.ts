@@ -49,8 +49,6 @@ export interface Conversation {
     user_message_text: string;
     user_audio_duration: number | null;
     ai_response_text: string;
-    ai_audio_url: string;
-    ai_audio_duration: number | null;
     user_sent_at: string;
     ai_responded_at: string;
     created_at: string;
@@ -112,6 +110,9 @@ export interface SendMessageRequest {
     meetId: string;
     userId: string;
     audioUrl: string;
+    title?: string;
+    topic?: string;
+    hints?: string;
     transcriptionText: string;
     conversation_id?: string; // Dify conversation_id，可选，第一次对话时为空
     audioDuration: number;

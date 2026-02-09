@@ -238,11 +238,6 @@ export default function MeetSummaryPage() {
                                     <p className="text-sm text-gray-700 bg-teal-50 p-3 rounded-lg border border-teal-200 ml-6">
                                         {conv.ai_response_text}
                                     </p>
-                                    {conv.ai_audio_duration && (
-                                        <span className="text-xs text-gray-400 ml-6">
-                                            回复时长: {conv.ai_audio_duration}秒
-                                        </span>
-                                    )}
                                 </div>
                             </div>
                         ))}

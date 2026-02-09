@@ -102,7 +102,7 @@ async function handleSSEStream(
 export async function POST(request: NextRequest) {
     try {
         const body: SendMessageRequest = await request.json();
-        const { meetId, userId, audioUrl, transcriptionText, audioDuration, conversation_id } = body;
+        const { meetId, userId, audioUrl, title, topic, hints, transcriptionText, audioDuration, conversation_id } = body;
 
         // conversation_id 是可选的，第一次对话时为空，后续对话时传入以保持上下文
 
@@ -128,9 +128,9 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({
                 user: userId,
                 inputs: {
-                    title: 'title',
-                    topic: 'topic',
-                    hints: '',
+                    title: title || '',
+                    topic: topic || '',
+                    hints: hints || '',
                 },
                 ...(conversation_id && { conversation_id }), // 只有在存在时才添加 conversation_id
                 query: transcriptionText,
@@ -152,10 +152,6 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // 模拟生成AI语音URL（实际应该调用TTS API）
-        const aiAudioUrl = `https://storage.example.com/audio-responses/ai-resp-${generateId()}.mp3`;
-        const aiAudioDuration = Math.ceil(aiResponseText.length / 10); // 粗略估算
-
         const now = new Date();
         const conversation: Conversation = {
             id: messageId || generateId(),
@@ -165,8 +161,6 @@ export async function POST(request: NextRequest) {
             user_message_text: transcriptionText,
             user_audio_duration: audioDuration,
             ai_response_text: aiResponseText,
-            ai_audio_url: aiAudioUrl,
-            ai_audio_duration: aiAudioDuration,
             user_sent_at: now.toISOString(),
             ai_responded_at: new Date(now.getTime()).toISOString(), // 2秒后回复
             created_at: now.toISOString(),
@@ -177,8 +171,6 @@ export async function POST(request: NextRequest) {
             conversationId: string;
             userMessage: string;
             aiResponseText: string;
-            aiAudioUrl: string;
-            aiAudioDuration: number;
             userSentAt: string;
             aiRespondedAt: string;
         }> = {
@@ -188,8 +180,6 @@ export async function POST(request: NextRequest) {
                 conversationId: conversation.id,
                 userMessage: conversation.user_message_text,
                 aiResponseText: conversation.ai_response_text,
-                aiAudioUrl: conversation.ai_audio_url,
-                aiAudioDuration: conversation.ai_audio_duration || 0,
                 userSentAt: conversation.user_sent_at,
                 aiRespondedAt: conversation.ai_responded_at,
             },

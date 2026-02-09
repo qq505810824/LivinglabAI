@@ -81,13 +81,7 @@ export const EndMeetingModal = ({
                                         <span className="text-gray-600">总时长</span>
                                         <span className="font-semibold text-gray-900">
                                             {Math.round(
-                                                conversations.reduce(
-                                                    (sum, conv) =>
-                                                        sum +
-                                                        (conv.user_audio_duration || 0) +
-                                                        (conv.ai_audio_duration || 0),
-                                                    0
-                                                )
+                                                conversations.reduce((sum: number, conv: Conversation) => sum + (conv.user_audio_duration || 0), 0)
                                             )}{' '}
                                             秒
                                         </span>

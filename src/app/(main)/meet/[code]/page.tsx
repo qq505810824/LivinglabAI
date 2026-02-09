@@ -207,7 +207,7 @@ function VoiceConversationContainer({
         handleStartRecording,
         handleStopRecording,
         resetConversation,
-    } = useVoiceConversation(meet.id, userId);
+    } = useVoiceConversation(meet, userId);
 
     // 确认结束会议时的处理
     const handleConfirmEndMeetingWithReset = () => {
@@ -225,7 +225,6 @@ function VoiceConversationContainer({
             console.log(`AI回复时间: ${new Date(conv.ai_responded_at).toLocaleString()}`);
             console.log(`AI回复: ${conv.ai_response_text}`);
             console.log(`用户音频时长: ${conv.user_audio_duration}秒`);
-            console.log(`AI音频时长: ${conv.ai_audio_duration}秒`);
         });
         console.log('=== 对话记录结束 ===');
 

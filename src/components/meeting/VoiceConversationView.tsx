@@ -58,18 +58,23 @@ export const VoiceConversationView = ({
                 className="relative w-full max-w-[400px] h-[750px] bg-gray-900 rounded-[3rem] overflow-hidden shadow-2xl border-[10px] border-gray-800 flex flex-col ring-1 ring-white/10"
             >
                 {/* WhatsApp Top Bar */}
-                <div className="absolute top-0 left-0 right-0 p-6 pt-8 z-20 flex justify-between items-start bg-gradient-to-b from-black/80 to-transparent">
-                    <ArrowLeftIcon className="text-white cursor-pointer hover:opacity-80" size={32} onClick={() => router.back()} />
-                    <div className="flex flex-col items-center">
-                        <div className="flex items-center gap-1.5 text-gray-300 text-[11px] mb-1.5 bg-black/20 px-2 py-0.5 rounded-full backdrop-blur-sm">
+                <div className="absolute top-0 left-0 right-0 p-6 pt-4 z-20 flex flex-col justify-between items-start bg-gradient-to-b from-black/80 to-transparent">
+                    <div className='w-full flex justify-between items-center'>
+                        <ArrowLeftIcon className="text-white cursor-pointer hover:opacity-80" size={32} onClick={() => router.back()} />
+                        <div className="flex items-center gap-1.5 text-gray-300 text-[11px]  bg-black/20 px-2 py-0.5 rounded-full backdrop-blur-sm">
                             <Lock size={10} /> 端到端加密
                         </div>
+                        <span className="text-gray-200 text-[12px] font-medium drop-shadow-md">
+                            {formatTime(time)}
+                        </span>
+                    </div>
+
+                    <div className="w-full flex flex-col items-center justify-center">
+
                         <h2 className="text-white text-2xl font-semibold tracking-wide drop-shadow-md">
                             {meet.title || 'AI会议'}
                         </h2>
-                        <span className="text-gray-200 text-base font-medium drop-shadow-md">
-                            {formatTime(time)}
-                        </span>
+
                         {meet.status && (
                             <span className="text-gray-300 text-xs mt-1">
                                 {getStatusText(meet.status)}
