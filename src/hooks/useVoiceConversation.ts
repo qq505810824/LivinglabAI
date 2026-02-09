@@ -12,6 +12,8 @@ export const useVoiceConversation = (meetId: string, userId: string) => {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [status, setStatus] = useState<'idle' | 'recording' | 'transcribing' | 'processing' | 'speaking'>('idle');
     const [currentAudioUrl, setCurrentAudioUrl] = useState<string | null>(null);
+    // Dify conversation_id - 用于维护对话上下文，从第一次对话开始到会议结束
+    const [difyConversationId, setDifyConversationId] = useState<string>('');
 
     const { startRecording, stopRecording, getAudioBlob, isRecording } = useRecording();
     const { sendMessage } = useConversations();
@@ -118,33 +120,40 @@ export const useVoiceConversation = (meetId: string, userId: string) => {
                 audioDuration = Math.ceil(mp3Blob.size / 16000);
             }
 
-            // 发送消息并获取AI回复
+            // 发送消息并获取AI回复（SSE 处理已在 API 中完成）
             setStatus('processing');
             const response = await sendMessage({
                 meetId,
                 userId,
-                audioUrl: `https://storage.example.com/recordings.mp3`,
+                audioUrl: ``,
                 transcriptionText,
+                conversation_id: difyConversationId, // 使用全局保存的 conversation_id
                 audioDuration,
             });
+
+            // 如果 API 返回了新的 conversation_id，更新全局状态
+            // 第一次对话时，API 会返回新的 conversation_id，后续对话使用同一个 ID
+            if (response?.conversation_id && response.conversation_id !== difyConversationId) {
+                setDifyConversationId(response.conversation_id);
+            }
 
             // 播放AI回复
             setStatus('speaking');
             setCurrentAudioUrl(response?.aiAudioUrl ?? '');
 
-            // 创建对话记录
+            // 创建对话记录（使用从 API 返回的数据）
             const newConversation: Conversation = {
-                id: response?.conversationId ?? '',
+                id: response?.conversationId || `conv-${Date.now()}`,
                 meet_id: meetId,
                 user_id: userId,
-                user_audio_url: `https://storage.example.com/recordings.mp3`,
-                user_message_text: response?.userMessage ?? transcriptionText,
+                user_audio_url: ``,
+                user_message_text: transcriptionText,
                 user_audio_duration: audioDuration,
-                ai_response_text: response?.aiResponseText ?? '',
+                ai_response_text: response?.aiResponseText || '',
                 ai_audio_url: response?.aiAudioUrl ?? '',
                 ai_audio_duration: response?.aiAudioDuration ?? 0,
-                user_sent_at: response?.userSentAt ?? new Date().toISOString(),
-                ai_responded_at: response?.aiRespondedAt ?? new Date().toISOString(),
+                user_sent_at: response?.userSentAt || new Date().toISOString(),
+                ai_responded_at: response?.aiRespondedAt || new Date().toISOString(),
                 created_at: new Date().toISOString(),
             };
 
@@ -163,7 +172,13 @@ export const useVoiceConversation = (meetId: string, userId: string) => {
             console.error('Failed to process recording:', error);
             setStatus('idle');
         }
-    }, [stopRecording, uploadToDify, transcribeWithDify, meetId, userId, sendMessage, playAudio]);
+    }, [stopRecording, uploadToDify, transcribeWithDify, meetId, userId, sendMessage, playAudio, difyConversationId]);
+
+    // 重置 conversation_id（会议结束时调用）
+    const resetConversation = useCallback(() => {
+        setDifyConversationId('');
+        setConversations([]);
+    }, []);
 
     const loadConversations = useCallback(async () => {
         // 可以从API加载历史对话
@@ -179,8 +194,10 @@ export const useVoiceConversation = (meetId: string, userId: string) => {
         status,
         isRecording,
         currentAudioUrl,
+        difyConversationId, // 暴露 conversation_id，方便调试
         handleStartRecording,
         handleStopRecording,
         loadConversations,
+        resetConversation, // 重置对话上下文（会议结束时调用）
     };
 };

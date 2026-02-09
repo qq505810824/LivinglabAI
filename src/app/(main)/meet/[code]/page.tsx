@@ -1,5 +1,6 @@
 'use client';
 
+import { EndMeetingModal } from '@/components/meeting/EndMeetingModal';
 import { ProcessingView } from '@/components/meeting/ProcessingView';
 import { VoiceConversationView } from '@/components/meeting/VoiceConversationView';
 import { useMeets } from '@/hooks/useMeets';
@@ -20,6 +21,7 @@ export default function MeetPage() {
     const [userId, setUserId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [showEndMeetingModal, setShowEndMeetingModal] = useState(false);
 
     // 从URL参数获取平台信息
     useEffect(() => {
@@ -99,8 +101,14 @@ export default function MeetPage() {
         }
     };
 
-    const handleEndMeeting = async () => {
-        if (meet && window.confirm('确定要结束会议吗？')) {
+    const handleEndMeeting = () => {
+        // 显示结束会议 modal
+        setShowEndMeetingModal(true);
+    };
+
+    const handleConfirmEndMeeting = async () => {
+        setShowEndMeetingModal(false);
+        if (meet) {
             setIsProcessing(true);
             try {
                 // 更新会议状态
@@ -111,6 +119,10 @@ export default function MeetPage() {
                 setIsProcessing(false);
             }
         }
+    };
+
+    const handleCancelEndMeeting = () => {
+        setShowEndMeetingModal(false);
     };
 
     const handleProcessingComplete = () => {
@@ -162,7 +174,14 @@ export default function MeetPage() {
     }
 
     return (
-        <VoiceConversationContainer meet={meet} userId={userId} onEndMeeting={handleEndMeeting} />
+        <VoiceConversationContainer
+            meet={meet}
+            userId={userId}
+            onEndMeeting={handleEndMeeting}
+            showEndMeetingModal={showEndMeetingModal}
+            onConfirmEndMeeting={handleConfirmEndMeeting}
+            onCancelEndMeeting={handleCancelEndMeeting}
+        />
     );
 }
 
@@ -170,10 +189,16 @@ function VoiceConversationContainer({
     meet,
     userId,
     onEndMeeting,
+    showEndMeetingModal,
+    onConfirmEndMeeting,
+    onCancelEndMeeting,
 }: {
     meet: Meet;
     userId: string;
     onEndMeeting: () => void;
+    showEndMeetingModal: boolean;
+    onConfirmEndMeeting: () => void;
+    onCancelEndMeeting: () => void;
 }) {
     const {
         conversations,
@@ -181,17 +206,52 @@ function VoiceConversationContainer({
         isRecording,
         handleStartRecording,
         handleStopRecording,
+        resetConversation,
     } = useVoiceConversation(meet.id, userId);
 
+    // 确认结束会议时的处理
+    const handleConfirmEndMeetingWithReset = () => {
+        // 打印所有对话记录
+        console.log('=== 会议对话记录（本地） ===');
+        console.log(`会议ID: ${meet.id}`);
+        console.log(`会议标题: ${meet.title}`);
+        console.log(`总对话数: ${conversations.length}`);
+        console.log('对话详情:');
+        conversations.forEach((conv, index) => {
+            console.log(`\n[对话 ${index + 1}]`);
+            console.log(`ID: ${conv.id}`);
+            console.log(`用户发送时间: ${new Date(conv.user_sent_at).toLocaleString()}`);
+            console.log(`用户消息: ${conv.user_message_text}`);
+            console.log(`AI回复时间: ${new Date(conv.ai_responded_at).toLocaleString()}`);
+            console.log(`AI回复: ${conv.ai_response_text}`);
+            console.log(`用户音频时长: ${conv.user_audio_duration}秒`);
+            console.log(`AI音频时长: ${conv.ai_audio_duration}秒`);
+        });
+        console.log('=== 对话记录结束 ===');
+
+        // 重置 conversation_id
+        resetConversation();
+        // 调用父组件的确认处理
+        onConfirmEndMeeting();
+    };
+
     return (
-        <VoiceConversationView
-            meet={meet}
-            conversations={conversations}
-            status={status}
-            isRecording={isRecording}
-            onStartRecording={handleStartRecording}
-            onStopRecording={handleStopRecording}
-            onEndMeeting={onEndMeeting}
-        />
+        <>
+            <VoiceConversationView
+                meet={meet}
+                conversations={conversations}
+                status={status}
+                isRecording={isRecording}
+                onStartRecording={handleStartRecording}
+                onStopRecording={handleStopRecording}
+                onEndMeeting={onEndMeeting}
+            />
+            <EndMeetingModal
+                isOpen={showEndMeetingModal}
+                conversations={conversations}
+                onConfirm={handleConfirmEndMeetingWithReset}
+                onCancel={onCancelEndMeeting}
+            />
+        </>
     );
 }
