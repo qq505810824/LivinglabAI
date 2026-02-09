@@ -49,7 +49,13 @@ export const useMeets = () => {
 
     try {
       const response = await fetch(`/api/meets/${id}`);
-      const data: ApiResponse<Meet> = await response.json();
+      const data: ApiResponse<
+        Meet & {
+          conversations?: any[];
+          todos?: any[];
+          summary?: any;
+        }
+      > = await response.json();
 
       if (!data.success) {
         throw new Error(data.error || 'Failed to fetch meet');

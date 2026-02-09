@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
                 data: {
                     id: authUser.id,
                     name: username,
-                    email: authUser.email,
+                    email: authUser.email || null,
                     role: 'user',
                     avatar_url: null,
                     meta: {
