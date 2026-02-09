@@ -2,7 +2,8 @@
 
 import type { Conversation, Meet } from '@/types/meeting';
 import { motion } from 'framer-motion';
-import { ChevronDown, Lock, Mic, MicOff, MoreVertical, Phone } from 'lucide-react';
+import { ArrowLeftIcon, Lock, Mic, MicOff, MoreVertical, Phone } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AIAvatar } from './AIAvatar';
 import { StatusIndicator } from './StatusIndicator';
@@ -27,7 +28,7 @@ export const VoiceConversationView = ({
     onEndMeeting,
 }: VoiceConversationViewProps) => {
     const [time, setTime] = useState(0);
-
+    const router = useRouter();
     useEffect(() => {
         const timer = setInterval(() => setTime(t => t + 1), 1000);
         return () => clearInterval(timer);
@@ -50,7 +51,7 @@ export const VoiceConversationView = ({
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+        <div className="flex flex-col items-center justify-center  bg-gray-100 p-4">
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -58,7 +59,7 @@ export const VoiceConversationView = ({
             >
                 {/* WhatsApp Top Bar */}
                 <div className="absolute top-0 left-0 right-0 p-6 pt-8 z-20 flex justify-between items-start bg-gradient-to-b from-black/80 to-transparent">
-                    <ChevronDown className="text-white cursor-pointer hover:opacity-80" size={32} />
+                    <ArrowLeftIcon className="text-white cursor-pointer hover:opacity-80" size={32} onClick={() => router.back()} />
                     <div className="flex flex-col items-center">
                         <div className="flex items-center gap-1.5 text-gray-300 text-[11px] mb-1.5 bg-black/20 px-2 py-0.5 rounded-full backdrop-blur-sm">
                             <Lock size={10} /> 端到端加密
@@ -99,31 +100,32 @@ export const VoiceConversationView = ({
                         <StatusIndicator status={status} />
                     </div>
 
-                    {/* Conversation History - 显示在底部 */}
-                    {conversations.length > 0 && (
-                        <div className="absolute bottom-32 left-4 right-4 max-h-32 overflow-y-auto space-y-2 z-10">
-                            {conversations.slice(-3).map((conv) => (
-                                <motion.div
-                                    key={conv.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="bg-white/10 backdrop-blur-sm rounded-lg p-3 shadow-sm border border-white/5"
-                                >
-                                    <div className="text-xs text-gray-400 mb-1">
-                                        {new Date(conv.user_sent_at).toLocaleTimeString()}
+                    {/* Conversation History - 只显示最后一次对话，显示在状态指示下方 */}
+                    {conversations.length > 0 && (() => {
+                        const lastConversation = conversations[conversations.length - 1];
+                        return (
+                            <motion.div
+                                key={lastConversation.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="relative z-10 mt-6 w-full max-w-sm px-4"
+                            >
+                                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 shadow-sm border border-white/5">
+                                    <div className="text-xs text-gray-400 mb-2">
+                                        {new Date(lastConversation.user_sent_at).toLocaleTimeString()}
                                     </div>
-                                    <div className="text-sm text-white/90 mb-1">
+                                    <div className="text-sm text-white/90 mb-2">
                                         <span className="font-semibold">您：</span>
-                                        {conv.user_message_text}
+                                        {lastConversation.user_message_text}
                                     </div>
                                     <div className="text-sm text-teal-300">
                                         <span className="font-semibold">AI：</span>
-                                        {conv.ai_response_text}
+                                        {lastConversation.ai_response_text}
                                     </div>
-                                </motion.div>
-                            ))}
-                        </div>
-                    )}
+                                </div>
+                            </motion.div>
+                        );
+                    })()}
                 </div>
 
                 {/* WhatsApp Bottom Controls */}
@@ -132,7 +134,6 @@ export const VoiceConversationView = ({
                     <div className="w-full flex justify-center mb-6">
                         <div className="w-10 h-1.5 bg-gray-600 rounded-full opacity-50"></div>
                     </div>
-
                     <div className="flex items-center justify-between px-6 bg-[#1f2c34] rounded-full py-4 shadow-lg border border-white/5">
                         <button className="text-gray-400 hover:text-white transition-colors p-1">
                             <MoreVertical size={26} />

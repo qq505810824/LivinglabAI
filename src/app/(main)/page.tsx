@@ -58,7 +58,7 @@ export default function Home() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-teal-50 flex items-center justify-center px-4">
+        <div className="h-full mt-14 bg-gradient-to-br from-indigo-50 via-white to-teal-50 flex items-center justify-center px-4">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

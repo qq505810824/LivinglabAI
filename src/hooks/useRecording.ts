@@ -1,100 +1,125 @@
-import { useState, useCallback } from 'react';
+import { convertToMp3 } from '@/components/base/voice-input/utils';
 import type { ApiResponse } from '@/types/meeting';
+import Recorder from 'js-audio-recorder';
+import { useCallback, useRef, useState } from 'react';
 
 export const useRecording = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
 
-  const startRecording = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      const chunks: Blob[] = [];
+    // 使用 js-audio-recorder（参考 index.tsx）
+    const recorderRef = useRef<Recorder | null>(null);
 
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunks.push(event.data);
+    const startRecording = useCallback(async () => {
+        try {
+            // 初始化 recorder（参考 index.tsx 的配置）
+            if (!recorderRef.current) {
+                recorderRef.current = new Recorder({
+                    sampleBits: 16,
+                    sampleRate: 16000,
+                    numChannels: 1,
+                    compiling: false,
+                });
+            }
+
+            await recorderRef.current.start();
+            setIsRecording(true);
+            setAudioChunks([]);
+            setError(null);
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to start recording';
+            setError(errorMessage);
+            setIsRecording(false);
+            throw err;
         }
-      };
+    }, []);
 
-      recorder.onstop = () => {
-        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-        setAudioChunks([audioBlob]);
-        stream.getTracks().forEach(track => track.stop());
-      };
+    const stopRecording = useCallback((): Promise<Blob | null> => {
+        return new Promise((resolve) => {
+            if (!recorderRef.current || !isRecording) {
+                resolve(null);
+                return;
+            }
 
-      recorder.start();
-      setMediaRecorder(recorder);
-      setIsRecording(true);
-      setAudioChunks([]);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to start recording';
-      setError(errorMessage);
-      throw err;
-    }
-  }, []);
+            try {
+                // 停止录音（参考 index.tsx:55）
+                recorderRef.current.stop();
 
-  const stopRecording = useCallback(() => {
-    if (mediaRecorder && isRecording) {
-      mediaRecorder.stop();
-      setIsRecording(false);
-    }
-  }, [mediaRecorder, isRecording]);
+                // 使用 convertToMp3 转换为 MP3（参考 index.tsx:60）
+                // convertToMp3 需要 recorder 对象，它会调用 recorder.getWAV() 和 recorder.getChannelData()
+                const mp3Blob = convertToMp3(recorderRef.current);
 
-  const transcribeAudio = useCallback(async (file: File, meetId: string, userId: string) => {
-    setLoading(true);
-    setError(null);
+                // 更新状态
+                setAudioChunks([mp3Blob]);
+                setIsRecording(false);
+                setError(null);
 
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('meetId', meetId);
-      formData.append('userId', userId);
+                // 返回 MP3 blob
+                resolve(mp3Blob);
+            } catch (err) {
+                const errorMessage = err instanceof Error ? err.message : 'Failed to stop recording';
+                console.error('Error stopping recording:', err);
+                setError(errorMessage);
+                setIsRecording(false);
+                resolve(null);
+            }
+        });
+    }, [isRecording]);
 
-      const response = await fetch('/api/recordings/transcribe', {
-        method: 'POST',
-        body: formData,
-      });
+    const transcribeAudio = useCallback(async (file: File, meetId: string, userId: string) => {
+        setLoading(true);
+        setError(null);
 
-      const data: ApiResponse<{
-        recordingId: string;
-        transcriptionId: string;
-        text: string;
-        language: string;
-        duration: number;
-      }> = await response.json();
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('meetId', meetId);
+            formData.append('userId', userId);
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to transcribe audio');
-      }
+            const response = await fetch('/api/recordings/transcribe', {
+                method: 'POST',
+                body: formData,
+            });
 
-      return data.data;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+            const data: ApiResponse<{
+                recordingId: string;
+                transcriptionId: string;
+                text: string;
+                language: string;
+                duration: number;
+            }> = await response.json();
 
-  const getAudioBlob = useCallback(() => {
-    if (audioChunks.length > 0) {
-      return new Blob(audioChunks, { type: 'audio/webm' });
-    }
-    return null;
-  }, [audioChunks]);
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to transcribe audio');
+            }
 
-  return {
-    loading,
-    error,
-    isRecording,
-    startRecording,
-    stopRecording,
-    transcribeAudio,
-    getAudioBlob,
-  };
+            return data.data;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+            setError(errorMessage);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const getAudioBlob = useCallback(() => {
+        if (audioChunks.length > 0) {
+            // 返回 MP3 blob（因为 stopRecording 已经转换为 MP3）
+            return audioChunks[0];
+        }
+        return null;
+    }, [audioChunks]);
+
+    return {
+        loading,
+        error,
+        isRecording,
+        startRecording,
+        stopRecording,
+        transcribeAudio,
+        getAudioBlob,
+    };
 };
