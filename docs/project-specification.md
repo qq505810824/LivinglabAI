@@ -1627,3 +1627,161 @@ Response:
 **文档版本**：v1.0  
 **最后更新**：2024-01-XX  
 **文档状态**：草案
+
+---
+
+## 十七、实时语音对话改造方案（Streaming ASR + 连续对话）
+
+### 17.1 背景与问题
+
+- 现有流程（单轮对话）：
+  - 用户点击录音按钮 → 浏览器录音，生成音频 Blob  
+  - 上传音频到 Dify `/files/upload`，获取 `upload_file_id`  
+  - 调用 Dify `workflows/run` 做语音转文字，返回 `transcriptionText`  
+  - 调用本地 `/api/conversations/message`，由该接口再调用 Dify `/chat-messages` 获取 AI 文本回复  
+  - 调用 Azure TTS 将 AI 文本转语音并播放  
+- 问题：
+  - 每轮对话至少 3–4 个 HTTP 调用，链路长、累计延迟高；
+  - 录音 → 上传 → 转写 → 对话 → TTS 为「分块」操作，用户等待感明显；
+  - 用户需每轮点击录音按钮，打断感强，不是自然连续对话。
+
+### 17.2 目标体验（参考 InterviewChatOverlay）
+
+- 用户进入对话页面后，完成一次授权/确认后即可**自动进入「监听模式」**：
+  - 用户说话时，前端实时显示转写字幕；
+  - 用户说完后自动触发 AI 回复，无需再点按钮；
+  - AI 回复期间显示「AI 回复中 / 正在说话」，此时禁止继续录音；
+  - AI 播放结束后自动恢复监听，进入下一轮对话；
+  - 全程只在会议开始时做一次「开始对话」操作、结束时点一次「结束会议」，中间无需人工点录音按钮。
+
+### 17.3 技术分层与职责划分
+
+1. **Streaming ASR 层（语音→文字，流式）**
+   - 通过 WebSocket 与语音识别服务建立长连接；
+   - 前端将录音 chunk（例如 16k 单声道 PCM/WAV）实时发送到 ASR 服务；
+   - 服务端持续返回部分（partial）与最终（final）转写文本；
+   - 前端根据 partial 更新实时字幕，根据 final 触发一轮完整对话。
+
+2. **LLM 对话层（文字→文字）**
+   - 保留 `/api/conversations/message` 作为统一的对话入口；
+   - `/api/conversations/message` 内部调用 Dify `/chat-messages`（或后续替换为其他 Chat API），维持 `conversation_id` 上下文；
+   - 入参只接受 `transcriptionText`（纯文本），不再依赖 Dify workflow 的 fileId。
+
+3. **TTS 层（文字→语音）**
+   - 继续使用 Azure TTS，将 AI 文本回复转为语音；
+   - 播放控制与状态机集成：AI 回复完成 → 进入 `speaking` 状态 → 播放结束后恢复 `listening`。
+
+> 结果：每轮对话只需要一条 Streaming ASR WebSocket 流 + 一次 LLM 请求 + 一次 TTS 请求，整体链路更短、响应更快。
+
+### 17.4 前端状态机与交互流程
+
+在 `useVoiceConversation` 中统一管理对话状态：
+
+- `isListening`: 是否在监听用户说话（录音中 + ASR 推流中）
+- `isProcessing`: 是否在等待 AI 文本回复（调用 `/api/conversations/message` 过程中）
+- `isSpeaking`: 是否在播放 AI 语音
+- `transcriptLive`: 当前轮对话的实时转写内容（partial 文本）
+- `conversations`: 历史对话记录（`Conversation[]`，用于保存和总结）
+
+**单轮对话状态流转：**
+
+1. **进入页面 / 开始对话**
+   - 用户点击「开始对话」或进入页面后确认授权麦克风；
+   - Hook 调用浏览器录音 API + 初始化 Streaming ASR WebSocket；
+   - `isListening = true`。
+
+2. **用户说话（Streaming ASR）**
+   - 录音 chunk 持续通过 WebSocket 发送给 ASR 服务；
+   - 收到 partial 文本 → 更新 `transcriptLive`，UI 底部显示「您：{transcriptLive}」；
+   - 收到 final 文本 → 结束本轮录音/推流，固定用户本轮发言文本。
+
+3. **调用 LLM 获取回复**
+   - 将 final 文本作为 `transcriptionText` 传给 `/api/conversations/message`；
+   - `isListening = false`，`isProcessing = true`；
+   - 后端调用 Dify `/chat-messages`，保持 `conversation_id` 上下文，返回 AI 文本回复和时间戳；
+   - 前端将本轮 `Conversation`（用户文本 + AI 文本 + 时间）追加到 `conversations` 中。
+
+4. **TTS 播放 AI 回复**
+   - 收到 AI 文本后，调用 Azure TTS 生成语音并播放；
+   - `isProcessing = false`，`isSpeaking = true`；
+   - 播放期间禁止新的录音交互（按钮禁用 / 状态提示「AI 正在说话…」）。
+
+5. **播放结束，准备下一轮**
+   - 播放完成 → `isSpeaking = false`；
+   - 如果会议状态不是 `ended`，重新进入监听：`isListening = true`，开启下一轮录音 + ASR；
+   - 如此往复，直到用户点击「结束会议」。
+
+6. **结束会议**
+   - 用户点击挂断按钮 → 弹出 `EndMeetingModal` 确认；
+   - 确认后：
+     - 关闭录音与 ASR WebSocket；
+     - 停止 TTS 播放；
+     - 批量保存 `conversations` 到 Supabase；
+     - 更新会议状态为 `ended`；
+     - 触发 `/api/todos/generate` 生成总结与待办；
+     - 跳转到总结页 `/meet/[code]/summary`。
+
+### 17.5 关键组件与 Hook 改造方向
+
+1. **`useVoiceConversation`**
+   - 职责：编排状态机（listening / processing / speaking）、串联 ASR → LLM → TTS；
+   - 新增方法：
+     - `startSession()`：完成麦克风授权并启动 Streaming ASR；
+     - `stopSession()`：强制停止当前录音与 ASR（用于结束会议）。
+   - 依赖注入：
+     - 接入一个通用的 Streaming ASR Hook（例如 `useStreamingASR`），内部实现可以替换（Dify、Munlingo、自建 ASR 等）。
+
+2. **Streaming ASR Hook（建议新增）**
+   - 类似 `munlingo` 项目里的 `useWavRecorder` + WebSocket 封装：
+     - `start(language)`：打开麦克风，建立 WebSocket，开始推流；
+     - `stop()`：停止录音，关闭 WebSocket；
+     - 回调：
+       - `onPartial(text: string)`：更新 `transcriptLive`；
+       - `onFinal(text: string)`：固定本轮文本，触发 LLM 调用。
+
+3. **`VoiceConversationView` UI**
+   - 顶部：
+     - 显示会议标题、状态（进行中 / 已结束）、计时器（可选）；
+   - 中部：
+     - AI Avatar + 状态提示：
+       - `isListening`：显示「正在聆听…」；
+       - `isProcessing`：显示「AI 正在思考…」；
+       - `isSpeaking`：显示「AI 正在说话…」+ Avatar 动画；
+     - 显示本轮实时字幕 `transcriptLive`；
+     - 保持显示最近一条完整对话（用户发言 + AI 回复）。
+   - 底部：
+     - 中间大按钮从「开始/停止录音」变为「可选的暂停/继续」；
+     - 右侧挂断按钮保留，用于结束会议；
+     - 左侧按钮在会议已结束后可跳转到总结页。
+
+4. **`MeetPage`（`/meet/[code]/page.tsx`）**
+   - 在用户和会议信息准备完毕后，自动触发 `startSession()`：
+     - 初始可通过提示文案引导用户点击一次「开始对话」按钮，以满足浏览器对用户手势授权麦克风的要求；
+     - 之后的轮次全自动。
+
+### 17.6 后端与外部服务配合
+
+1. **Streaming ASR 服务**
+   - 提供 WebSocket 接口，例如：`wss://.../api/asr/stream?lang=zh|en`；
+   - 消息协议：
+     - 客户端：发送二进制音频 chunk；
+     - 服务端：返回 JSON 文本，如：
+       - `{ type: 'partial', text: '你好' }`
+       - `{ type: 'final', text: '你好，我是张三。' }`
+       - `{ type: 'error', message: '...' }`。
+
+2. **LLM 对话服务（Dify 或替代）**
+   - 保留 `/api/conversations/message` 调用 Dify `/chat-messages` 的实现；
+   - 仅接收 `transcriptionText` 文本，不再耦合音频上传与 workflow。
+
+3. **TTS 服务（Azure）**
+   - 继续通过 `useTTS` 直接调用 Azure TTS；
+   - 从 `useVoiceConversation` 中在 AI 文本回复完成后发起调用；
+
+### 17.7 渐进式改造策略
+
+1. 第一阶段：保留现有 Dify 转写方案，新增 Streaming ASR 支持，做 A/B 开关或配置切换；
+2. 第二阶段：在对话链路中默认使用 Streaming ASR，只在出错时回退到「上传 + workflow」方案；
+3. 第三阶段：确认新链路稳定后，完全移除 Dify workflow 转写逻辑，仅保留文本 Chat 能力；
+4. 后续如需替换 Dify，只需改 `/api/conversations/message` 中的对话实现，Streaming ASR 与 TTS 无需调整。
+

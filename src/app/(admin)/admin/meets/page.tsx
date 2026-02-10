@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuth } from '@/contexts/AuthContext';
 import { useMeets } from '@/hooks/useMeets';
 import type { Meet } from '@/types/meeting';
 import { Calendar, Clock, Copy, ExternalLink, Plus, Users } from 'lucide-react';
@@ -11,6 +12,7 @@ export default function MeetsPage() {
     const { getMeets, createMeet, loading, error } = useMeets();
     const [meets, setMeets] = useState<Meet[]>([]);
     const [showCreateForm, setShowCreateForm] = useState(false);
+    const { user } = useAuth()
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -41,7 +43,7 @@ export default function MeetsPage() {
                 description: formData.description || undefined,
                 startTime: formData.startTime || new Date().toISOString(),
                 duration: formData.duration,
-                hostId: 'user-001', // Mock admin user
+                hostId: user?.id || '', // Mock admin user
             });
 
             if (newMeet) {

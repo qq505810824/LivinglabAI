@@ -89,7 +89,7 @@ export default function Home() {
                                     setMeetingCode(e.target.value.toUpperCase());
                                     setValidationError(null);
                                 }}
-                                placeholder="请输入会议号（如：ABC123）"
+                                placeholder="请输入会议号（如：100083426）"
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center text-lg font-mono tracking-wider uppercase"
                                 disabled={isValidating}
                                 autoFocus
@@ -134,7 +134,7 @@ export default function Home() {
                     {/* 提示信息 */}
                     <div className="mt-6 pt-6 border-t border-gray-200">
                         <p className="text-xs text-gray-500 text-center">
-                            提示：会议号通常由6-8位字母或数字组成
+                            提示：会议号通常由9 位数字组成，按 3-3-3 分组，如：100 083 426
                             <br />
                             如果会议已结束，将自动跳转到会议总结页面
                         </p>

@@ -82,14 +82,21 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // 生成唯一的会议号（6位大写字母数字组合）
+        // 生成唯一的会议号（9位数字，按 3-3-3 分组，如：100 083 426）
+        const generateNumericMeetingCode = () => {
+            // 生成 9 位随机数字字符串（首位不为 0）
+            const num = Math.floor(100000000 + Math.random() * 900000000); // [100000000, 999999999]
+            const s = num.toString(); // 长度固定为 9
+            return `${s.slice(0, 3)}${s.slice(3, 6)}${s.slice(6, 9)}`;
+        };
+
         let meetingCode: string = '';
         let isUnique = false;
         let attempts = 0;
         const maxAttempts = 10;
 
         while (!isUnique && attempts < maxAttempts) {
-            meetingCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            meetingCode = generateNumericMeetingCode();
 
             // 检查会议号是否已存在
             const { data: existingMeet } = await supabaseAdmin
@@ -118,7 +125,7 @@ export async function POST(request: NextRequest) {
                 meeting_code: meetingCode,
                 title,
                 description: description || null,
-                host_id: '3c4ed3b4-16e3-4809-8633-9df8df7fd433',// hostId,
+                host_id: hostId,// hostId,
                 start_time: startTime || null,
                 duration: duration || null,
                 status: 'pending',
