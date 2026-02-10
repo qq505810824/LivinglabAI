@@ -1,12 +1,9 @@
+import { transcribeAudioWithDify } from '@/lib/difyTranscription';
 import type { Conversation, Meet } from '@/types/meeting';
 import { useCallback, useState } from 'react';
 import { useConversations } from './useConversations';
 import { useRecording } from './useRecording';
 import { useTTS } from './useTTS';
-
-// Dify配置（可以从环境变量读取）
-const DIFY_SERVER = process.env.NEXT_PUBLIC_DIFY_SERVER || 'https://aienglish-dify.docai.net/v1';
-const DIFY_API_KEY = process.env.NEXT_PUBLIC_DIFY_API_KEY || 'app-FsPlEb8aHgrWxVa57HDoa5SB';
 
 export const useVoiceConversation = (meet: Meet, userId: string) => {
     const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -17,62 +14,6 @@ export const useVoiceConversation = (meet: Meet, userId: string) => {
     const { startRecording, stopRecording, getAudioBlob, isRecording } = useRecording();
     const { sendMessage } = useConversations();
     const { playAudio, text_to_audio } = useTTS();
-
-    // 上传音频到Dify并获取file_id
-    const uploadToDify = useCallback(async (audioBlob: Blob, mimeType: string = 'audio/mp3'): Promise<string> => {
-        // 根据blob类型确定文件扩展名
-        const extension = mimeType.includes('wav') ? 'wav' : 'mp3';
-        const file = new File([audioBlob], `recording.${extension}`, { type: mimeType });
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('user', userId);
-
-        const response = await fetch(`${DIFY_SERVER}/files/upload`, {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${DIFY_API_KEY}`,
-            },
-            body: formData,
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Failed to upload to Dify: ${response.statusText} - ${errorText}`);
-        }
-
-        const data = await response.json();
-        return data.id as string; // upload_file_id
-    }, [userId]);
-
-    // 调用Dify workflow转文字
-    const transcribeWithDify = useCallback(async (fileId: string): Promise<string> => {
-        const response = await fetch(`${DIFY_SERVER}/workflows/run`, {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${DIFY_API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                user: userId,
-                inputs: {
-                    audio: {
-                        transfer_method: 'local_file',
-                        upload_file_id: fileId,
-                        type: 'audio',
-                    },
-                },
-                response_mode: 'blocking',
-            }),
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to transcribe with Dify: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        return data?.data?.outputs?.text || '';
-    }, [userId]);
-
 
     const handleStartRecording = useCallback(async () => {
         try {
@@ -95,12 +36,9 @@ export const useVoiceConversation = (meet: Meet, userId: string) => {
                 setStatus('idle');
                 return;
             }
-            // // 2. 上传到Dify并获取file_id
+            // 2. 使用 Dify 转写音频（上传 + 转文字 封装在一起）
             const mimeType = mp3Blob.type.includes('wav') ? 'audio/wav' : 'audio/mp3';
-            const fileId = await uploadToDify(mp3Blob, mimeType);
-
-            // 3. 调用Dify workflow转文字
-            const transcriptionText = await transcribeWithDify(fileId);
+            const transcriptionText = await transcribeAudioWithDify(mp3Blob, userId, mimeType);
             // const transcriptionText = 'Hello, how are you?';
             if (!transcriptionText) {
                 throw new Error('Failed to get transcription text');
@@ -172,7 +110,7 @@ export const useVoiceConversation = (meet: Meet, userId: string) => {
             console.error('Failed to process recording:', error);
             setStatus('idle');
         }
-    }, [stopRecording, uploadToDify, transcribeWithDify, meet.id, userId, sendMessage, playAudio, difyConversationId]);
+    }, [stopRecording, meet.id, userId, sendMessage, playAudio, difyConversationId]);
 
     // 重置 conversation_id（会议结束时调用）
     const resetConversation = useCallback(() => {
