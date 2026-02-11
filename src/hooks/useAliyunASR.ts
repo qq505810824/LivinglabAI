@@ -52,6 +52,14 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
     const stopTimeoutRef = useRef<NodeJS.Timeout | null>(null); // StopTranscription 超时关闭连接
     const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null); // 长时间未说话的空闲超时
 
+    // 检查 Token 是否有效（未过期）
+    const isTokenValid = useCallback((token: ASRToken | null): boolean => {
+        if (token && token.token) {
+            return true
+        }
+        return false;
+    }, []);
+
     // 获取 Token
     const fetchToken = useCallback(async (): Promise<ASRToken> => {
         try {
@@ -68,12 +76,27 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
         }
     }, []);
 
+    // 获取有效的 Token（如果已有有效 token 则复用，否则获取新的）
+    const getValidToken = useCallback(async (): Promise<ASRToken> => {
+        // 检查当前 token 是否有效
+        if (isTokenValid(tokenRef.current)) {
+            console.log('Reusing existing valid token');
+            return tokenRef.current!;
+        }
+
+        // Token 不存在或已过期，获取新 token
+        console.log('Fetching new token (token expired or not exists)');
+        const tokenData = await fetchToken();
+        console.log('tokenData', tokenData);
+        tokenRef.current = tokenData;
+        return tokenData;
+    }, [isTokenValid, fetchToken]);
+
     // 初始化 WebSocket 连接
     const connect = useCallback(async () => {
         try {
-            // 获取 Token
-            const tokenData = await fetchToken();
-            tokenRef.current = tokenData;
+            // 获取有效的 Token（复用已有 token 或获取新 token）
+            const tokenData = await getValidToken();
 
             // 构建 WebSocket URL
             const wsUrl = `wss://nls-gateway.${tokenData.region}.aliyuncs.com/ws/v1?token=${tokenData.token}`;
@@ -136,6 +159,7 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                         setTranscript(text);
                         onPartialResult?.(text);
                     } else if (header.name === 'TranscriptionCompleted') {
+                        // console.log('TranscriptionCompleted response received:', message);
                         // 有识别结果，清除空闲定时器
                         if (idleTimeoutRef.current) {
                             clearTimeout(idleTimeoutRef.current);
@@ -237,7 +261,7 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
             setError(error.message);
             onError?.(error);
         }
-    }, [fetchToken, format, sampleRate, onPartialResult, onFinalResult, onError]);
+    }, [getValidToken, format, sampleRate, onPartialResult, onFinalResult, onError]);
 
     // 开始录音并发送音频流
     const startRecording = useCallback(async () => {
@@ -333,21 +357,21 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
             setIsRecording(true);
 
             // 启动空闲超时：如果 10 秒内没有任何识别结果，则自动断开连接
-            if (idleTimeoutRef.current) {
-                clearTimeout(idleTimeoutRef.current);
-            }
-            idleTimeoutRef.current = setTimeout(() => {
-                console.warn('ASR idle timeout: no speech detected for 10 seconds, disconnecting');
-                const idleError = new Error('长时间未说话，连接已断开，请点击开始录音重新连接');
-                setError(idleError.message);
-                onError?.(idleError);
-                // 停止录音并断开连接
-                stopRecording();
-                if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                    wsRef.current.close();
-                }
-                idleTimeoutRef.current = null;
-            }, 10000);
+            // if (idleTimeoutRef.current) {
+            //     clearTimeout(idleTimeoutRef.current);
+            // }
+            // idleTimeoutRef.current = setTimeout(() => {
+            //     console.warn('ASR idle timeout: no speech detected for 10 seconds, disconnecting');
+            //     const idleError = new Error('长时间未说话，连接已断开，请点击开始录音重新连接');
+            //     setError(idleError.message);
+            //     onError?.(idleError);
+            //     // 停止录音并断开连接
+            //     stopRecording();
+            //     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            //         wsRef.current.close();
+            //     }
+            //     idleTimeoutRef.current = null;
+            // }, 10000);
         } catch (err) {
             const error = err instanceof Error ? err : new Error('Failed to start recording');
             setError(error.message);
@@ -404,7 +428,7 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                     wsRef.current.close();
                 }
                 stopTimeoutRef.current = null;
-            }, 10000); // 10 秒超时
+            }, 3000); // 10 秒超时
         }
     }, []);
 

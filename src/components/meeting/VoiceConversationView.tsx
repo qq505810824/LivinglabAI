@@ -74,7 +74,7 @@ export const VoiceConversationView = ({
         if (isEnded) {
             // 已结束的会议跳转到summary页面
             router.push(`/meet/${meet.meeting_code}/summary`);
-        }  
+        }
     };
 
     return (
@@ -87,10 +87,10 @@ export const VoiceConversationView = ({
                 {/* WhatsApp Top Bar */}
                 <div className="absolute top-0 left-0 right-0 p-6 pt-4 z-20 flex flex-col justify-between items-start bg-gradient-to-b from-black/80 to-transparent">
                     <div className='w-full flex justify-between items-center'>
-                        <ArrowLeftIcon 
-                            className="text-white cursor-pointer hover:opacity-80" 
-                            size={32} 
-                            onClick={handleBackClick} 
+                        <ArrowLeftIcon
+                            className="text-white cursor-pointer hover:opacity-80"
+                            size={32}
+                            onClick={handleBackClick}
                         />
                         <div className="flex items-center gap-1.5 text-gray-300 text-[11px]  bg-black/20 px-2 py-0.5 rounded-full backdrop-blur-sm">
                             <Lock size={10} /> 端到端加密
@@ -109,9 +109,8 @@ export const VoiceConversationView = ({
                         </h2>
 
                         {meet.status && (
-                            <span className={`text-xs mt-1 font-medium ${
-                                isEnded ? 'text-red-400' : 'text-gray-300'
-                            }`}>
+                            <span className={`text-xs mt-1 font-medium ${isEnded ? 'text-red-400' : 'text-gray-300'
+                                }`}>
                                 {getStatusText(meet.status)}
                             </span>
                         )}
@@ -131,31 +130,32 @@ export const VoiceConversationView = ({
                     />
 
                     {/* AI Avatar */}
-                    <div className="relative z-10 scale-110">
+                    <div className="absolute top-[24%] left-1/2 transform -translate-x-1/2 z-10 scale-110">
                         <AIAvatar isSpeaking={status === 'speaking' && !isEnded} />
+                        {/* Status Indicator - 已结束的会议不显示等待中状态 */}
+                        {!isEnded && (
+                            <div className="relative z-10 mt-4">
+                                <StatusIndicator status={status} />
+                            </div>
+                        )}
+                        {isEnded && (
+                            <div className="relative z-10 mt-4">
+                                <span className="text-red-400 text-sm font-medium">会议已结束</span>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Status Indicator - 已结束的会议不显示等待中状态 */}
-                    {!isEnded && (
-                        <div className="relative z-10 mt-4">
-                            <StatusIndicator status={status} />
-                        </div>
-                    )}
-                    {isEnded && (
-                        <div className="relative z-10 mt-4">
-                            <span className="text-red-400 text-sm font-medium">会议已结束</span>
-                        </div>
-                    )}
+
 
                     {/* 实时转写字幕（仅阿里云 ASR 方案，监听状态时显示） */}
-                    {!isEnded && transcriptLive && (status === 'listening' || status === 'recording') && (
+                    {/* {!isEnded && transcriptLive && (status === 'listening' || status === 'recording') && (
                         <div className="relative z-10 mt-4 px-6 max-w-2xl">
                             <div className="bg-black/30 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/10">
                                 <div className="text-xs text-gray-400 mb-1">您：</div>
                                 <div className="text-white text-base leading-relaxed">{transcriptLive}</div>
                             </div>
                         </div>
-                    )}
+                    )} */}
 
                     {/* Conversation History - 只显示最后一次对话，显示在状态指示下方 */}
                     {conversations.length > 0 && (() => {
@@ -165,7 +165,7 @@ export const VoiceConversationView = ({
                                 key={lastConversation.id}
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="relative z-10 mt-6 w-full max-w-sm px-4"
+                                className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-10 mt-6 w-full max-w-sm px-4"
                             >
                                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 shadow-sm border border-white/5">
                                     <div className="text-xs text-gray-400 mb-2">
@@ -186,14 +186,14 @@ export const VoiceConversationView = ({
                 </div>
 
                 {/* WhatsApp Bottom Controls */}
-                <div className="bg-[#111b21] px-6 pb-10 pt-6">
+                <div className="bg-[#111b21] px-6 pb-6 pt-6">
                     {/* Swipe Up Indicator */}
                     <div className="w-full flex justify-center mb-6">
                         <div className="w-10 h-1.5 bg-gray-600 rounded-full opacity-50"></div>
                     </div>
                     <div className="flex items-center justify-between px-6 bg-[#1f2c34] rounded-full py-4 shadow-lg border border-white/5">
                         <button className="text-gray-400 hover:text-white transition-colors p-1"
-                        onClick={handleGoToSummary}
+                            onClick={handleGoToSummary}
                         >
                             <MoreVertical size={26} />
                         </button>
@@ -208,8 +208,8 @@ export const VoiceConversationView = ({
                                 ${isEnded
                                     ? 'bg-gray-600 opacity-50 cursor-not-allowed'
                                     : isRecording
-                                    ? 'bg-red-500 hover:bg-red-600 scale-110 animate-pulse'
-                                    : 'bg-indigo-600 hover:bg-indigo-700 scale-100'
+                                        ? 'bg-red-500 hover:bg-red-600 scale-110 animate-pulse'
+                                        : 'bg-indigo-600 hover:bg-indigo-700 scale-100'
                                 }
                                 ${status !== 'idle' && !isRecording && !isEnded ? 'opacity-50 cursor-not-allowed' : ''}
                                 ${!isEnded ? 'cursor-pointer active:scale-95' : ''}
@@ -226,7 +226,8 @@ export const VoiceConversationView = ({
                         {onEndMeeting && !isEnded && (
                             <button
                                 onClick={onEndMeeting}
-                                className="w-14 h-14 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg active:scale-95 transition-transform hover:bg-red-600"
+                                className={`w-14 h-14 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg active:scale-95 transition-transform hover:bg-red-600 ${status === 'listening' || status === 'recording' || status === 'speaking' ? 'opacity-50 bg-gray-600 cursor-not-allowed' : ''}    `}
+                                disabled={(status === 'listening' || status === 'recording' || status === 'speaking')}
                             >
                                 <Phone size={28} className="fill-current rotate-[135deg]" />
                             </button>

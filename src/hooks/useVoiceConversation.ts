@@ -261,27 +261,6 @@ export const useVoiceConversation = (
         }
     }, [stopRecording, meet.id, meet.title, meet.description, userId, sendMessage, playAudio, text_to_audio, difyConversationId]);
 
-    // 统一入口：根据方案选择不同的处理方式
-    const handleStartRecording = useCallback(async () => {
-        if (asrMode === 'aliyun') {
-            // 阿里云 ASR 方案：启动会话
-            await startSession();
-        } else {
-            // Dify 方案：开始录音
-            await handleStartRecordingDify();
-        }
-    }, [asrMode, handleStartRecordingDify]);
-
-    const handleStopRecording = useCallback(async () => {
-        if (asrMode === 'aliyun') {
-            // 阿里云 ASR 方案：停止当前录音（会触发 final 结果）
-            await asrStopRecording();
-        } else {
-            // Dify 方案：停止录音并处理
-            await handleStopRecordingDify();
-        }
-    }, [asrMode, handleStopRecordingDify, asrStopRecording]);
-
     // 启动会话（阿里云 ASR 方案）
     const startSession = useCallback(async () => {
         try {
@@ -315,6 +294,30 @@ export const useVoiceConversation = (
             console.error('Failed to stop session:', error);
         }
     }, [asrStopRecording, asrDisconnect]);
+
+    // 统一入口：根据方案选择不同的处理方式
+    const handleStartRecording = useCallback(async () => {
+        if (asrMode === 'aliyun') {
+            // 阿里云 ASR 方案：启动会话（建立连接并开始实时识别）
+            await startSession();
+        } else {
+            // Dify 方案：开始录音
+            await handleStartRecordingDify();
+        }
+    }, [asrMode, handleStartRecordingDify, startSession]);
+
+    const handleStopRecording = useCallback(async () => {
+        if (asrMode === 'aliyun') {
+            // 阿里云 ASR 方案：
+            // 点击“停止对话”时，应停止聆听并断开实时语音识别连接，
+            // 下次点击“开始对话”时再重新连接
+            await stopSession();
+        } else {
+            // Dify 方案：停止录音并处理
+            await handleStopRecordingDify();
+        }
+    }, [asrMode, handleStopRecordingDify, stopSession]);
+
 
     // 重置 conversation_id（会议结束时调用）
     const resetConversation = useCallback(() => {
