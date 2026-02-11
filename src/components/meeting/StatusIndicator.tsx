@@ -3,7 +3,7 @@
 import { Loader2, Mic, Brain, Volume2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-type Status = 'idle' | 'recording' | 'transcribing' | 'processing' | 'speaking';
+type Status = 'idle' | 'recording' | 'transcribing' | 'processing' | 'speaking' | 'listening';
 
 interface StatusIndicatorProps {
   status: Status;
@@ -20,6 +20,11 @@ export const StatusIndicator = ({ status }: StatusIndicatorProps) => {
       text: '正在录音...',
       icon: Mic,
       color: 'text-red-500',
+    },
+    listening: {
+      text: '正在聆听...',
+      icon: Mic,
+      color: 'text-blue-500',
     },
     transcribing: {
       text: '正在理解您的话...',

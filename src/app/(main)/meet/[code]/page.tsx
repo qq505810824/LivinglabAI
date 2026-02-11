@@ -223,14 +223,22 @@ function VoiceConversationContainer({
     onProcessingStart: () => void;
     onProcessingComplete: () => void;
 }) {
+    // 可以通过环境变量或配置来选择 ASR 方案，默认使用 'dify'
+    // 设置为 'aliyun' 使用阿里云实时语音识别，'dify' 使用 Dify 转写
+    const asrMode = (process.env.NEXT_PUBLIC_ASR_MODE as 'dify' | 'aliyun' | undefined) || 'dify';
+
     const {
         conversations,
         status,
         isRecording,
+        transcriptLive, // 实时转写字幕（仅阿里云 ASR 方案有效）
+        isListening, // 是否在监听状态（仅阿里云 ASR 方案有效）
         handleStartRecording,
         handleStopRecording,
+        startSession, // 启动会话（阿里云 ASR 方案）
+        stopSession, // 停止会话（阿里云 ASR 方案）
         resetConversation,
-    } = useVoiceConversation(meet, userId);
+    } = useVoiceConversation(meet, userId, { asrMode });
 
     // 确认结束会议时的处理
     const handleConfirmEndMeetingWithReset = async () => {
@@ -314,6 +322,8 @@ function VoiceConversationContainer({
                 conversations={conversations}
                 status={status}
                 isRecording={isRecording}
+                transcriptLive={transcriptLive}
+                isListening={isListening}
                 onStartRecording={handleStartRecording}
                 onStopRecording={handleStopRecording}
                 onEndMeeting={onEndMeeting}

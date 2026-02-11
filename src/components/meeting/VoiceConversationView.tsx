@@ -11,8 +11,10 @@ import { StatusIndicator } from './StatusIndicator';
 interface VoiceConversationViewProps {
     meet: Meet;
     conversations: Conversation[];
-    status: 'idle' | 'recording' | 'transcribing' | 'processing' | 'speaking';
+    status: 'idle' | 'recording' | 'transcribing' | 'processing' | 'speaking' | 'listening';
     isRecording: boolean;
+    transcriptLive?: string; // 实时转写字幕（仅阿里云 ASR 方案有效）
+    isListening?: boolean; // 是否在监听状态（仅阿里云 ASR 方案有效）
     onStartRecording: () => void;
     onStopRecording: () => void;
     onEndMeeting?: () => void;
@@ -23,6 +25,8 @@ export const VoiceConversationView = ({
     conversations,
     status,
     isRecording,
+    transcriptLive,
+    isListening,
     onStartRecording,
     onStopRecording,
     onEndMeeting,
@@ -140,6 +144,16 @@ export const VoiceConversationView = ({
                     {isEnded && (
                         <div className="relative z-10 mt-4">
                             <span className="text-red-400 text-sm font-medium">会议已结束</span>
+                        </div>
+                    )}
+
+                    {/* 实时转写字幕（仅阿里云 ASR 方案，监听状态时显示） */}
+                    {!isEnded && transcriptLive && (status === 'listening' || status === 'recording') && (
+                        <div className="relative z-10 mt-4 px-6 max-w-2xl">
+                            <div className="bg-black/30 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/10">
+                                <div className="text-xs text-gray-400 mb-1">您：</div>
+                                <div className="text-white text-base leading-relaxed">{transcriptLive}</div>
+                            </div>
                         </div>
                     )}
 
