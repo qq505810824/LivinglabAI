@@ -8,10 +8,15 @@ export async function GET(request: NextRequest) {
         const searchParams = request.nextUrl.searchParams;
         const hostId = searchParams.get('hostId');
         const status = searchParams.get('status');
+        const title = searchParams.get('title'); // 标题筛选
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '10');
 
-        let query = supabaseAdmin.from('meets').select('*', { count: 'exact' });
+        // 使用关联查询获取用户信息，避免 N+1 查询问题
+        // host:users(*) 表示通过 host_id 外键关联 users 表，别名为 host
+        let query = supabaseAdmin
+            .from('meets')
+            .select('*, host:users!host_id(id, name, email)', { count: 'exact' });
 
         // 筛选
         if (hostId) {
@@ -19,6 +24,10 @@ export async function GET(request: NextRequest) {
         }
         if (status) {
             query = query.eq('status', status);
+        }
+        if (title) {
+            // 使用 ilike 进行不区分大小写的模糊匹配
+            query = query.ilike('title', `%${title}%`);
         }
 
         // 分页
@@ -35,15 +44,24 @@ export async function GET(request: NextRequest) {
             throw new Error(`Failed to fetch meets: ${error.message}`);
         }
 
+        // 处理返回数据，将 host 信息扁平化
+        const meetsWithHost = (meets || []).map((meet: any) => {
+            const { host, ...meetData } = meet;
+            return {
+                ...meetData,
+                hostName: host?.name || host?.email || '未知用户',
+            };
+        });
+
         const response: ApiResponse<{
-            meets: Meet[];
+            meets: (Meet & { hostName?: string | null })[];
             total: number;
             page: number;
             limit: number;
         }> = {
             success: true,
             data: {
-                meets: (meets || []) as Meet[],
+                meets: meetsWithHost as (Meet & { hostName?: string | null })[],
                 total: count || 0,
                 page,
                 limit,
@@ -116,7 +134,7 @@ export async function POST(request: NextRequest) {
             throw new Error('Failed to generate unique meeting code');
         }
 
-        const joinUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://example.com'}/meet/${meetingCode}`;
+        const joinUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://talent-sync-ai-wou3.vercel.app/'}/meet/${meetingCode}`;
         const now = new Date().toISOString();
 
         const { data: newMeet, error } = await supabaseAdmin
