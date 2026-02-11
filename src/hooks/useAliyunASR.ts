@@ -73,7 +73,6 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
         try {
             // 获取 Token
             const tokenData = await fetchToken();
-            console.log('tokenData', tokenData);
             tokenRef.current = tokenData;
 
             // 构建 WebSocket URL
