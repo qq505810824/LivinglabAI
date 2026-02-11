@@ -49,7 +49,8 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
     const processorRef = useRef<ScriptProcessorNode | null>(null);
     const isStartSentRef = useRef<boolean>(false); // 标记是否已发送 StartTranscription
     const taskIdRef = useRef<string | null>(null);
-    const stopTimeoutRef = useRef<NodeJS.Timeout | null>(null); // 用于超时关闭连接
+    const stopTimeoutRef = useRef<NodeJS.Timeout | null>(null); // StopTranscription 超时关闭连接
+    const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null); // 长时间未说话的空闲超时
 
     // 获取 Token
     const fetchToken = useCallback(async (): Promise<ASRToken> => {
@@ -85,39 +86,14 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                 console.log('Aliyun ASR WebSocket connected');
                 setIsConnected(true);
                 setError(null);
-                isStartSentRef.current = false; // 重置标记
+                // 仅重置标记与 taskId，不在这里发送 StartTranscription，避免连接后长时间空闲
+                isStartSentRef.current = false;
                 taskIdRef.current = generateMessageId();
-                // 延迟一小段时间确保连接完全建立，然后发送 StartTranscription
-                setTimeout(() => {
-                    if (ws.readyState === WebSocket.OPEN && !isStartSentRef.current) {
-                        const startParams = {
-                            header: {
-                                appkey: tokenData.appKey,
-                                message_id: generateMessageId(), // 使用 32 位十六进制字符串
-                                task_id: taskIdRef.current, // 使用 32 位十六进制字符串
-                                namespace: 'SpeechTranscriber',
-                                name: 'StartTranscription',
-                                status: 3, // 3 表示请求
-                            },
-                            payload: {
-                                appkey: tokenData.appKey,
-                                format: format,
-                                sample_rate: sampleRate,
-                                enable_intermediate_result: true, // 启用中间结果
-                                enable_punctuation_prediction: true, // 启用标点预测
-                                enable_inverse_text_normalization: true, // 启用ITN
-                            },
-                        };
-
-                        console.log('Sending StartTranscription:', JSON.stringify(startParams, null, 2));
-                        ws.send(JSON.stringify(startParams));
-                        isStartSentRef.current = true;
-                    }
-                }, 100); // 延迟 100ms
             };
 
             ws.onmessage = (event) => {
                 try {
+                    // console.log('event.data', event.data);
                     const message = JSON.parse(event.data);
                     const { header, payload } = message || {};
 
@@ -151,13 +127,22 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                     }
 
                     if (header.name === 'TranscriptionResultChanged') {
+                        // 有识别结果，清除空闲定时器
+                        if (idleTimeoutRef.current) {
+                            clearTimeout(idleTimeoutRef.current);
+                            idleTimeoutRef.current = null;
+                        }
                         // 中间结果（部分识别）
                         const text = payload?.result || '';
                         setTranscript(text);
                         onPartialResult?.(text);
                     } else if (header.name === 'TranscriptionCompleted') {
+                        // 有识别结果，清除空闲定时器
+                        if (idleTimeoutRef.current) {
+                            clearTimeout(idleTimeoutRef.current);
+                            idleTimeoutRef.current = null;
+                        }
                         // 最终结果
-                        console.log('TranscriptionCompleted received:', message);
                         const text = payload?.result || '';
                         setTranscript(text);
                         onFinalResult?.(text);
@@ -194,14 +179,27 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                             payload,
                         });
                     } else if (header.name === 'SentenceBegin') {
+                        // 句子开始，清除空闲定时器
+                        if (idleTimeoutRef.current) {
+                            clearTimeout(idleTimeoutRef.current);
+                            idleTimeoutRef.current = null;
+                        }
                         // 句子开始
                         console.log('Sentence begin', payload);
                     } else if (header.name === 'SentenceEnd') {
-                        // 句子结束
-                        console.log('Sentence end', payload);
+                        // 句子结束：视为一轮对话的最终结果
+                        if (idleTimeoutRef.current) {
+                            clearTimeout(idleTimeoutRef.current);
+                            idleTimeoutRef.current = null;
+                        }
                         const text = payload?.result || '';
-                        setTranscript(text);
-                        onFinalResult?.(text);
+                        console.log('Sentence end with text:', text);
+                        if (text) {
+                            setTranscript(text);
+                            onFinalResult?.(text);
+                        }
+                        // 当前轮对话结束：停止录音并发送 StopTranscription，进入 AI 回复阶段
+                        stopRecording();
                     } else {
                         // 其他消息类型，记录日志以便调试
                         console.log('Received message:', header.name, payload);
@@ -229,6 +227,11 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                     clearTimeout(stopTimeoutRef.current);
                     stopTimeoutRef.current = null;
                 }
+                // 清除空闲定时器
+                if (idleTimeoutRef.current) {
+                    clearTimeout(idleTimeoutRef.current);
+                    idleTimeoutRef.current = null;
+                }
             };
         } catch (err) {
             const error = err instanceof Error ? err : new Error('Unknown error');
@@ -244,6 +247,37 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                 await connect();
                 // 等待连接建立
                 await new Promise((resolve) => setTimeout(resolve, 500));
+            }
+
+            // 首次开始录音时发送 StartTranscription，避免长时间空闲
+            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && !isStartSentRef.current) {
+                const appKey = tokenRef.current?.appKey || '';
+                if (!taskIdRef.current) {
+                    taskIdRef.current = generateMessageId();
+                }
+
+                const startParams = {
+                    header: {
+                        appkey: appKey,
+                        message_id: generateMessageId(), // 使用 32 位十六进制字符串
+                        task_id: taskIdRef.current, // 使用 32 位十六进制字符串
+                        namespace: 'SpeechTranscriber',
+                        name: 'StartTranscription',
+                        status: 3, // 3 表示请求
+                    },
+                    payload: {
+                        appkey: appKey,
+                        format: format,
+                        sample_rate: sampleRate,
+                        enable_intermediate_result: true, // 启用中间结果
+                        enable_punctuation_prediction: true, // 启用标点预测
+                        enable_inverse_text_normalization: true, // 启用ITN
+                    },
+                };
+
+                // console.log('Sending StartTranscription (on startRecording):', JSON.stringify(startParams, null, 2));
+                wsRef.current.send(JSON.stringify(startParams));
+                isStartSentRef.current = true;
             }
 
             // 获取麦克风权限
@@ -298,6 +332,23 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
             processor.connect(audioContext.destination);
 
             setIsRecording(true);
+
+            // 启动空闲超时：如果 10 秒内没有任何识别结果，则自动断开连接
+            if (idleTimeoutRef.current) {
+                clearTimeout(idleTimeoutRef.current);
+            }
+            idleTimeoutRef.current = setTimeout(() => {
+                console.warn('ASR idle timeout: no speech detected for 10 seconds, disconnecting');
+                const idleError = new Error('长时间未说话，连接已断开，请点击开始录音重新连接');
+                setError(idleError.message);
+                onError?.(idleError);
+                // 停止录音并断开连接
+                stopRecording();
+                if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                    wsRef.current.close();
+                }
+                idleTimeoutRef.current = null;
+            }, 10000);
         } catch (err) {
             const error = err instanceof Error ? err : new Error('Failed to start recording');
             setError(error.message);
@@ -308,6 +359,12 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
     // 停止录音
     const stopRecording = useCallback(() => {
         setIsRecording(false);
+
+        // 清除空闲定时器
+        if (idleTimeoutRef.current) {
+            clearTimeout(idleTimeoutRef.current);
+            idleTimeoutRef.current = null;
+        }
 
         // 停止音频流
         if (mediaStreamRef.current) {
@@ -338,7 +395,7 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                     status: 3, // 3 表示请求
                 },
             };
-            console.log('Sending StopTranscription:', JSON.stringify(stopParams, null, 2));
+            // console.log('Sending StopTranscription:', JSON.stringify(stopParams, null, 2));
             wsRef.current.send(JSON.stringify(stopParams));
 
             // 设置超时：如果 3 秒内没有收到 StopTranscription 响应，强制关闭连接
@@ -348,7 +405,7 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                     wsRef.current.close();
                 }
                 stopTimeoutRef.current = null;
-            }, 3000); // 3 秒超时
+            }, 10000); // 10 秒超时
         }
     }, []);
 
@@ -360,6 +417,11 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
         if (stopTimeoutRef.current) {
             clearTimeout(stopTimeoutRef.current);
             stopTimeoutRef.current = null;
+        }
+        // 清除空闲定时器
+        if (idleTimeoutRef.current) {
+            clearTimeout(idleTimeoutRef.current);
+            idleTimeoutRef.current = null;
         }
 
         if (wsRef.current) {
