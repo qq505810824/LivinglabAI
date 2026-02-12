@@ -184,6 +184,20 @@ export async function synthesizeTTS(text: string, options?: TTSOptions): Promise
     }
 }
 
+/**
+ * 下载音频为 MP3 文件
+ * @param audioUrl Data URL 格式的音频 URL
+ * @param filename 下载的文件名（可选，默认为 tts-{timestamp}.mp3）
+ * @example
+ * ```typescript
+ * import { synthesizeTTS, downloadAudio } from '@/lib/aliyun-tts';
+ * 
+ * const audioUrl = await synthesizeTTS('你好，世界！');
+ * downloadAudio(audioUrl, 'my-audio.mp3');
+ * ```
+ */
+export { downloadAudio } from './utils/download';
+
 // 导出类型
 export type { AliyunTTSConfig, TTSOptions, Voice } from './core/types';
 

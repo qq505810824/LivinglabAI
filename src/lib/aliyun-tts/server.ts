@@ -194,8 +194,20 @@ export async function synthesizeSpeech(
                     }
                 }
 
-                // Token 过期，清除缓存并重试
+                // Token 过期或无效，清除缓存并重试
                 if (response.status === 401 || response.status === 403) {
+                    cachedToken = null;
+                    if (attempt < 2) {
+                        // 重新获取 Token 并重试
+                        await getValidToken();
+                        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+                        continue;
+                    }
+                }
+
+                // 错误 418：可能是音色不支持或其他参数问题，清除 Token 缓存并重试
+                if (response.status === 418 || errorMessage.includes('418') || errorMessage.includes('TtsClientError')) {
+                    console.warn('TTS API error 418 detected, clearing token cache and retrying...');
                     cachedToken = null;
                     if (attempt < 2) {
                         // 重新获取 Token 并重试
