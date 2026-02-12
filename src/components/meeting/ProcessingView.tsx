@@ -11,8 +11,6 @@ interface ProcessingViewProps {
 
 export const ProcessingView = ({ onComplete, steps }: ProcessingViewProps) => {
     const defaultSteps = [
-        '正在上传会议录音...',
-        '正在转写对话内容 (Whisper)...',
         '正在分析会议内容...',
         '正在提取任务事项...',
         '正在生成会议总结...',
@@ -65,11 +63,10 @@ export const ProcessingView = ({ onComplete, steps }: ProcessingViewProps) => {
                                 <div className="w-7 h-7 border-[3px] border-gray-200 rounded-full"></div>
                             )}
                             <span
-                                className={`text-base ${
-                                    step === idx
+                                className={`text-base ${step === idx
                                         ? 'font-bold text-indigo-900'
                                         : 'text-gray-600 font-medium'
-                                }`}
+                                    }`}
                             >
                                 {text}
                             </span>
