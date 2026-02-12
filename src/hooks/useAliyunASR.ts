@@ -192,15 +192,15 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                             payload?.error ||
                             header.message ||
                             `Task failed with status: ${header.status || 'unknown'}`;
-                        const error = new Error(errorMsg);
+                        // const error = new Error(errorMsg);
                         setError(errorMsg);
-                        onError?.(error);
-                        console.error('TaskFailed:', {
-                            status: header.status,
-                            status_text: header.status_text,
-                            message: header.message,
-                            payload,
-                        });
+                        // onError?.(error);
+                        // console.error('TaskFailed:', {
+                        //     status: header.status,
+                        //     status_text: header.status_text,
+                        //     message: header.message,
+                        //     payload,
+                        // });
                     } else if (header.name === 'SentenceBegin') {
                         // 句子开始，清除空闲定时器
                         if (idleTimeoutRef.current) {

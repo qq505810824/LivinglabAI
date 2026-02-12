@@ -1,3 +1,4 @@
+import { synthesizeTTS } from '@/lib/aliyun-tts';
 import { transcribeAudioWithDify } from '@/lib/difyTranscription';
 import type { Conversation, Meet } from '@/types/meeting';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -96,12 +97,21 @@ export const useVoiceConversation = (
 
                 // 播放 AI 回复
                 setStatus('speaking');
-                try {
-                    const audioUrl = await text_to_audio(response?.aiResponseText ?? '');
-                    await playAudio(audioUrl);
-                } catch (error) {
-                    console.error('Failed to play audio:', error);
+
+
+
+                if (asrMode === 'aliyun') {
+                    const url = await synthesizeTTS(response?.aiResponseText ?? '', { voice: 'lydia' });
+                    await playAudio(url);
+                } else {
+                    try {
+                        const audioUrl = await text_to_audio(response?.aiResponseText ?? '');
+                        await playAudio(audioUrl);
+                    } catch (error) {
+                        console.error('Failed to play audio:', error);
+                    }
                 }
+
 
                 // 播放完成后，如果会议未结束，恢复监听
                 if (meet.status !== 'ended') {
