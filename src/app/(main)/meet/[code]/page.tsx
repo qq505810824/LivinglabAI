@@ -80,7 +80,7 @@ export default function MeetPage() {
         };
 
         identifyPlatformUser();
-    }, [identifyUser, getCurrentUser]);
+    }, [identifyUser, getCurrentUser, authUser]);
 
     // 加载会议信息
     useEffect(() => {
