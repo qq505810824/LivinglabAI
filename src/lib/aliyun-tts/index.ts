@@ -184,6 +184,43 @@ export async function synthesizeTTS(text: string, options?: TTSOptions): Promise
     }
 }
 
+/** 阿里云 SSML 单次请求最大字符数（含标签） */
+export const SSML_MAX_LENGTH = 300;
+
+/**
+ * 使用 SSML 合成语音（支持停顿、语速等标签）
+ * 将 SSML 字符串（需包含 &lt;speak&gt;&lt;/speak&gt;）作为 text 提交给合成接口
+ * 注意：阿里云要求 SSML 总长度 &lt; 300 字符。
+ *
+ * @param ssml 完整 SSML 字符串，例如 buildSSMLWithBreaks() 的返回值
+ * @param options TTS 选项（音色、语速等）
+ * @returns 音频 URL（Data URL）
+ *
+ * @example
+ * import { buildSSMLWithBreaks, synthesizeTTSFromSSML } from '@/lib/aliyun-tts';
+ * const ssml = buildSSMLWithBreaks([
+ *   { text: '第一句。', breakMs: 500 },
+ *   { text: '第二句。', breakMs: 1000 },
+ *   { text: '结束。' }
+ * ]);
+ * const url = await synthesizeTTSFromSSML(ssml, { voice: 'aiqi' });
+ */
+export async function synthesizeTTSFromSSML(ssml: string, options?: TTSOptions): Promise<string> {
+    const trimmed = ssml.trim();
+    if (!trimmed) {
+        throw new Error('SSML content cannot be empty');
+    }
+    if (!trimmed.startsWith('<speak>') || !trimmed.endsWith('</speak>')) {
+        throw new Error('SSML must be wrapped in <speak></speak>');
+    }
+    if (trimmed.length >= SSML_MAX_LENGTH) {
+        throw new Error(
+            `SSML 总长度不能超过 ${SSML_MAX_LENGTH} 字符（阿里云限制），当前为 ${trimmed.length} 字符，请缩短内容或拆分为多段合成。`
+        );
+    }
+    return synthesizeTTS(trimmed, options);
+}
+
 /**
  * 下载音频为 MP3 文件
  * @param audioUrl Data URL 格式的音频 URL
@@ -197,6 +234,10 @@ export async function synthesizeTTS(text: string, options?: TTSOptions): Promise
  * ```
  */
 export { downloadAudio } from './utils/download';
+
+// SSML 工具（带停顿等）
+export { buildSSMLWithBreaks, escapeSSMLText } from './utils/ssml';
+export type { SSMLSegment } from './utils/ssml';
 
 // 导出类型
 export type { AliyunTTSConfig, TTSOptions, Voice } from './core/types';

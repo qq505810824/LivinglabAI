@@ -64,7 +64,8 @@ src/lib/aliyun-tts/
 │   └── audio-player.ts      # 音频播放器（独立封装）
 ├── utils/
 │   ├── token-manager.ts     # Token 管理（复用、缓存）
-│   └── error-handler.ts     # 错误处理
+│   ├── error-handler.ts     # 错误处理
+│   └── ssml.ts              # SSML 模板（带停顿等）
 └── index.ts                 # 统一导出接口（主要入口）
 ```
 
@@ -393,6 +394,51 @@ class AliyunTTS {
 - **自动播放**：默认自动播放，无需额外调用
 - **方案切换**：通过 `setMode` 在方案 A 和 B 之间切换
 - **配置灵活**：支持全局配置和单次调用配置
+
+#### 3.7 SSML 模板与带停顿合成
+
+阿里云 TTS 支持通过 SSML（Speech Synthesis Markup Language）控制停顿、语速等。本模块提供 SSML 构建与合成接口，便于生成**带自定义停顿**的语音。
+
+**文件**：`src/lib/aliyun-tts/utils/ssml.ts`、`src/lib/aliyun-tts/index.ts`
+
+**能力概述**：
+- **`buildSSMLWithBreaks(segments)`**：根据多段文本与每段后的停顿时长，生成 `<speak>...</speak>` 字符串（内含 `<break time="..."/>`）。
+- **`synthesizeTTSFromSSML(ssml, options)`**：将 SSML 字符串提交给现有合成 API，返回音频 URL（与 `synthesizeTTS` 使用同一后端，仅 text 为 SSML 内容）。
+- 停顿时长：阿里云要求 `time` 为 `"50ms"`～`"10000ms"` 或 `"1s"`～`"10s"`，工具内会自动换算与钳位。
+
+**类型与工具**：
+```typescript
+// 单个片段：文本 + 其后停顿（毫秒）
+interface SSMLSegment {
+  text: string;
+  breakMs?: number;  // 0 表示不插入停顿
+}
+
+// 构建 SSML 字符串
+function buildSSMLWithBreaks(segments: SSMLSegment[]): string;
+
+// 对 SSML 内文本做 XML 转义（& < > " '）
+function escapeSSMLText(text: string): string;
+```
+
+**使用示例**：
+```typescript
+import { buildSSMLWithBreaks, synthesizeTTSFromSSML } from '@/lib/aliyun-tts';
+
+// 构建：第一句后停 0.5 秒，第二句后停 1 秒，最后一句无停顿
+const ssml = buildSSMLWithBreaks([
+  { text: '第一句话。', breakMs: 500 },
+  { text: '第二句话，中间有停顿。', breakMs: 1000 },
+  { text: '结束。' },
+]);
+
+// 合成并得到音频 URL（可播放、下载）
+const audioUrl = await synthesizeTTSFromSSML(ssml, { voice: 'aiqi', speechRate: 0 });
+```
+
+**测试页面**：`/test/tts` 中提供「合成带停顿的语音 (SSML)」区域，可添加多个片段、为每段选择其后停顿时长（无 / 0.3s / 0.5s / 0.7s / 1s / 2s），并支持「合成并播放（带停顿）」与「仅合成（带停顿）」；可展开「查看生成的 SSML」核对输出。
+
+**说明**：仅中文、英文音色支持 SSML；整段内容需位于一对 `<speak></speak>` 内，且每个合成任务只含一个 `<speak>`。详见 [阿里云 SSML 文档](https://help.aliyun.com/zh/isi/developer-reference/ssml-overview)。
 
 ### 步骤 4：创建阿里云 TTS Provider（适配层）
 
