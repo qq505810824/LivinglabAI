@@ -48,6 +48,9 @@ export default function MeetPage() {
                             setUserId(currentUser.id);
                             return;
                         }
+                    } else {
+                        setUserId(authUser?.id || '');
+                        return;
                     }
 
                     // 如果没有登录，显示错误
