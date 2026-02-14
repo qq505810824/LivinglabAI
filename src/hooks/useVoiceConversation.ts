@@ -137,6 +137,7 @@ export const useVoiceConversation = (
     );
 
     // 阿里云 ASR hook（需要在 handleFinalTranscription 之后定义，以便在回调中使用）
+    // 句子结束仅追加到全文，不自动提交；用户通过「发送」按钮主动结束本轮
     const {
         isConnected: asrConnected,
         isRecording: asrRecording,
@@ -146,28 +147,24 @@ export const useVoiceConversation = (
         startRecording: asrStartRecording,
         stopRecording: asrStopRecording,
         disconnect: asrDisconnect,
+        clearTranscript: asrClearTranscript,
     } = useAliyunASR({
         language: 'zh',
         sampleRate: 16000,
         format: 'pcm',
-        onPartialResult: (text) => {
-            // 实时更新字幕
-            setTranscriptLive(text);
-        },
-        onFinalResult: (text) => {
-            // 最终结果，触发对话流程
-            if (text && text.trim()) {
-                handleFinalTranscription(text);
-            }
-            // 清空实时字幕
-            setTranscriptLive('');
-        },
         onError: (error) => {
             console.error('ASR error:', error);
             setStatus('idle');
             setIsListening(false);
         },
     });
+
+    // 实时字幕与 ASR 全文同步（已结束句子 + 当前句中间结果）
+    useEffect(() => {
+        if (asrMode === 'aliyun') {
+            setTranscriptLive(asrTranscript);
+        }
+    }, [asrMode, asrTranscript]);
 
     // 将 asrStartRecording 存储到 ref 中，供 handleFinalTranscription 使用
     useEffect(() => {
@@ -291,19 +288,36 @@ export const useVoiceConversation = (
         }
     }, [asrConnected, asrConnect, asrStartRecording]);
 
-    // 停止会话（阿里云 ASR 方案）
+    // 停止会话（阿里云 ASR 方案，含取消）
     const stopSession = useCallback(async () => {
         try {
             setIsListening(false);
             setStatus('idle');
             await asrStopRecording();
+            asrClearTranscript();
             await asrDisconnect();
             recordingStartTimeRef.current = null;
             setTranscriptLive('');
         } catch (error) {
             console.error('Failed to stop session:', error);
         }
-    }, [asrStopRecording, asrDisconnect]);
+    }, [asrStopRecording, asrDisconnect, asrClearTranscript]);
+
+    // 发送当前转写内容，结束本轮并触发 AI 回复（阿里云 ASR 方案）
+    const handleSendTranscript = useCallback(async () => {
+        const text = transcriptLive.trim();
+        if (!text) return;
+        try {
+            await asrStopRecording();
+            asrClearTranscript();
+            setTranscriptLive('');
+            await handleFinalTranscription(text);
+        } catch (error) {
+            console.error('Failed to send transcript:', error);
+            setStatus('idle');
+            setIsListening(false);
+        }
+    }, [transcriptLive, asrStopRecording, asrClearTranscript, handleFinalTranscription]);
 
     // 统一入口：根据方案选择不同的处理方式
     const handleStartRecording = useCallback(async () => {
@@ -374,9 +388,10 @@ export const useVoiceConversation = (
         asrMode, // 当前使用的 ASR 方案
         handleStartRecording,
         handleStopRecording,
-        startSession, // 启动会话（阿里云 ASR 方案）
-        stopSession, // 停止会话（阿里云 ASR 方案）
+        handleSendTranscript, // 发送当前转写并触发 AI 回复（仅阿里云 ASR 方案）
+        startSession,
+        stopSession,
         loadConversations,
-        resetConversation, // 重置对话上下文（会议结束时调用）
+        resetConversation,
     };
 };

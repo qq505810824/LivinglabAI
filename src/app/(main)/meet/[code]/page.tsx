@@ -234,12 +234,11 @@ function VoiceConversationContainer({
         conversations,
         status,
         isRecording,
-        transcriptLive, // 实时转写字幕（仅阿里云 ASR 方案有效）
-        isListening, // 是否在监听状态（仅阿里云 ASR 方案有效）
+        transcriptLive,
+        isListening,
         handleStartRecording,
         handleStopRecording,
-        startSession, // 启动会话（阿里云 ASR 方案）
-        stopSession, // 停止会话（阿里云 ASR 方案）
+        handleSendTranscript, // 发送当前转写并触发 AI 回复（仅阿里云 ASR 方案）
         resetConversation,
     } = useVoiceConversation(meet, userId, { asrMode });
 
@@ -329,6 +328,7 @@ function VoiceConversationContainer({
                 isListening={isListening}
                 onStartRecording={handleStartRecording}
                 onStopRecording={handleStopRecording}
+                onSendTranscript={handleSendTranscript}
                 onEndMeeting={onEndMeeting}
             />
             <EndMeetingModal

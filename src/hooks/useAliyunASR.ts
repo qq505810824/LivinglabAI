@@ -39,8 +39,14 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
 
     const [isConnected, setIsConnected] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
-    const [transcript, setTranscript] = useState('');
+    /** 已结束的句子拼接成的全文（SentenceEnd 时追加，不触发结束） */
+    const [accumulatedTranscript, setAccumulatedTranscript] = useState('');
+    /** 当前句子的中间识别结果（TranscriptionResultChanged） */
+    const [interimTranscript, setInterimTranscript] = useState('');
     const [error, setError] = useState<string | null>(null);
+
+    /** 对外暴露的全文：已结束句子 + 当前句中间结果 */
+    const transcript = accumulatedTranscript + (interimTranscript ? (accumulatedTranscript ? ' ' : '') + interimTranscript : '');
 
     const wsRef = useRef<WebSocket | null>(null);
     const tokenRef = useRef<ASRToken | null>(null);
@@ -154,20 +160,21 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                             clearTimeout(idleTimeoutRef.current);
                             idleTimeoutRef.current = null;
                         }
-                        // 中间结果（部分识别）
+                        // 中间结果（当前句子的部分识别）
                         const text = payload?.result || '';
-                        setTranscript(text);
+                        setInterimTranscript(text);
                         onPartialResult?.(text);
                     } else if (header.name === 'TranscriptionCompleted') {
-                        // console.log('TranscriptionCompleted response received:', message);
-                        // 有识别结果，清除空闲定时器
+                        // 整段转写结束（如 Stop 后服务端返回），仍通知最终结果
                         if (idleTimeoutRef.current) {
                             clearTimeout(idleTimeoutRef.current);
                             idleTimeoutRef.current = null;
                         }
-                        // 最终结果
                         const text = payload?.result || '';
-                        setTranscript(text);
+                        if (text) {
+                            setAccumulatedTranscript((prev) => prev + (prev ? ' ' : '') + text);
+                            setInterimTranscript('');
+                        }
                         onFinalResult?.(text);
                     } else if (header.name === 'StopTranscription') {
                         // StopTranscription 响应
@@ -210,7 +217,7 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                         // 句子开始
                         console.log('Sentence begin', payload);
                     } else if (header.name === 'SentenceEnd') {
-                        // 句子结束：视为一轮对话的最终结果
+                        // 句子结束：仅追加到全文，不结束对话；用户通过「发送」按钮主动结束
                         if (idleTimeoutRef.current) {
                             clearTimeout(idleTimeoutRef.current);
                             idleTimeoutRef.current = null;
@@ -218,11 +225,10 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                         const text = payload?.result || '';
                         console.log('Sentence end with text:', text);
                         if (text) {
-                            setTranscript(text);
-                            onFinalResult?.(text);
+                            setAccumulatedTranscript((prev) => prev + (prev ? ' ' : '') + text);
+                            setInterimTranscript('');
                         }
-                        // 当前轮对话结束：停止录音并发送 StopTranscription，进入 AI 回复阶段
-                        stopRecording();
+                        // 不再在此处 stopRecording 或调用 onFinalResult
                     } else {
                         // 其他消息类型，记录日志以便调试
                         console.log('Received message:', header.name, payload);
@@ -263,9 +269,16 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
         }
     }, [getValidToken, format, sampleRate, onPartialResult, onFinalResult, onError]);
 
+    // 清空已累积的转写（用于取消或新一轮开始前）
+    const clearTranscript = useCallback(() => {
+        setAccumulatedTranscript('');
+        setInterimTranscript('');
+    }, []);
+
     // 开始录音并发送音频流
     const startRecording = useCallback(async () => {
         try {
+            clearTranscript();
             if (!isConnected || !wsRef.current) {
                 await connect();
                 // 等待连接建立
@@ -377,7 +390,7 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
             setError(error.message);
             onError?.(error);
         }
-    }, [isConnected, connect, sampleRate, onError]);
+    }, [isConnected, connect, sampleRate, onError, clearTranscript]);
 
     // 停止录音
     const stopRecording = useCallback(() => {
@@ -473,5 +486,6 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
         startRecording,
         stopRecording,
         disconnect,
+        clearTranscript,
     };
 };

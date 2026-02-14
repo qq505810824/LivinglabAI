@@ -2,7 +2,7 @@
 
 import type { Conversation, Meet } from '@/types/meeting';
 import { motion } from 'framer-motion';
-import { ArrowLeftIcon, Lock, Mic, MicOff, MoreVertical, Phone } from 'lucide-react';
+import { ArrowLeftIcon, Lock, Mic, MicOff, MoreVertical, Phone, Send, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AIAvatar } from './AIAvatar';
@@ -17,6 +17,8 @@ interface VoiceConversationViewProps {
     isListening?: boolean; // 是否在监听状态（仅阿里云 ASR 方案有效）
     onStartRecording: () => void;
     onStopRecording: () => void;
+    /** 发送当前转写并触发 AI 回复（仅阿里云 ASR 方案，与取消/发送按钮配合） */
+    onSendTranscript?: () => void;
     onEndMeeting?: () => void;
 }
 
@@ -29,6 +31,7 @@ export const VoiceConversationView = ({
     isListening,
     onStartRecording,
     onStopRecording,
+    onSendTranscript,
     onEndMeeting,
 }: VoiceConversationViewProps) => {
     const [time, setTime] = useState(0);
@@ -147,42 +150,66 @@ export const VoiceConversationView = ({
 
 
 
-                    {/* 实时转写字幕（仅阿里云 ASR 方案，监听状态时显示） */}
-                    {/* {!isEnded && transcriptLive && (status === 'listening' || status === 'recording') && (
-                        <div className="relative z-10 mt-4 px-6 max-w-2xl">
-                            <div className="bg-black/30 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/10">
-                                <div className="text-xs text-gray-400 mb-1">您：</div>
-                                <div className="text-white text-base leading-relaxed">{transcriptLive}</div>
+                    {/* 实时转写字幕（阿里云 ASR：监听/录音时显示已说内容，可取消或发送） */}
+                    {!isEnded && transcriptLive && (status === 'listening' || status === 'recording') && (
+                        <div className="absolute bottom-28 left-1/2 transform -translate-x-1/2 z-10 w-full max-w-sm px-4">
+                            <div className="bg-black/40 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/10 shadow-lg">
+                                <div className="text-xs text-gray-400 mb-1.5">您说的内容</div>
+                                <div className="text-white text-sm leading-relaxed min-h-10 max-h-24 overflow-y-auto">
+                                    {transcriptLive}
+                                </div>
+                                {onSendTranscript && (
+                                    <div className="flex gap-2 mt-3">
+                                        <button
+                                            type="button"
+                                            onClick={onStopRecording}
+                                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm border border-white/20"
+                                        >
+                                            <X className="w-4 h-4" />
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={onSendTranscript}
+                                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium"
+                                        >
+                                            <Send className="w-4 h-4" />
+                                            Send
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    )} */}
+                    )}
 
-                    {/* Conversation History - 只显示最后一次对话，显示在状态指示下方 */}
-                    {conversations.length > 0 && (() => {
-                        const lastConversation = conversations[conversations.length - 1];
-                        return (
-                            <motion.div
-                                key={lastConversation.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-10 mt-6 w-full max-w-sm px-4"
-                            >
-                                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 shadow-sm border border-white/5">
-                                    <div className="text-xs text-gray-400 mb-2">
-                                        {new Date(lastConversation.user_sent_at).toLocaleTimeString()}
+                    {/* Conversation History - 只显示最后一次对话；正在显示「您说的内容」时隐藏，AI 回复后再显示 */}
+                    {conversations.length > 0 &&
+                        !(transcriptLive && (status === 'listening' || status === 'recording')) &&
+                        (() => {
+                            const lastConversation = conversations[conversations.length - 1];
+                            return (
+                                <motion.div
+                                    key={lastConversation.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-10 mt-6 w-full max-w-sm px-4"
+                                >
+                                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 shadow-sm border border-white/5">
+                                        <div className="text-xs text-gray-400 mb-2">
+                                            {new Date(lastConversation.user_sent_at).toLocaleTimeString()}
+                                        </div>
+                                        <div className="text-sm text-white/90 mb-2">
+                                            <span className="font-semibold">您：</span>
+                                            {lastConversation.user_message_text}
+                                        </div>
+                                        <div className="text-sm text-teal-300">
+                                            <span className="font-semibold">AI：</span>
+                                            {lastConversation.ai_response_text}
+                                        </div>
                                     </div>
-                                    <div className="text-sm text-white/90 mb-2">
-                                        <span className="font-semibold">您：</span>
-                                        {lastConversation.user_message_text}
-                                    </div>
-                                    <div className="text-sm text-teal-300">
-                                        <span className="font-semibold">AI：</span>
-                                        {lastConversation.ai_response_text}
-                                    </div>
-                                </div>
-                            </motion.div>
-                        );
-                    })()}
+                                </motion.div>
+                            );
+                        })()}
                 </div>
 
                 {/* WhatsApp Bottom Controls */}
