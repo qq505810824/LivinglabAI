@@ -97,6 +97,13 @@ export const VoiceConversationView = ({
                         />
                         <div className="flex items-center gap-1.5 text-gray-300 text-[11px]  bg-black/20 px-2 py-0.5 rounded-full backdrop-blur-sm">
                             <Lock size={10} /> 端到端加密
+
+                            {meet.status && (
+                                <span className={`text-[11px] bg-gray-500 px-1  rounded-full backdrop-blur-sm font-medium ${isEnded ? 'text-red-400' : 'text-gray-300'
+                                    }`}>
+                                    {getStatusText(meet.status)}
+                                </span>
+                            )}
                         </div>
                         {!isEnded && (
                             <span className="text-gray-200 text-[12px] font-medium drop-shadow-md">
@@ -111,11 +118,10 @@ export const VoiceConversationView = ({
                             {meet.title || 'AI会议'}
                         </h2>
 
-                        {meet.status && (
-                            <span className={`text-xs mt-1 font-medium ${isEnded ? 'text-red-400' : 'text-gray-300'
-                                }`}>
-                                {getStatusText(meet.status)}
-                            </span>
+                        {!isEnded && (
+                            <div className="relative z-10">
+                                <StatusIndicator status={status} />
+                            </div>
                         )}
                     </div>
                     <div className="w-8" /> {/* 占位符保持居中 */}
@@ -136,11 +142,7 @@ export const VoiceConversationView = ({
                     <div className="absolute top-[24%] left-1/2 transform -translate-x-1/2 z-10 scale-110">
                         <AIAvatar isSpeaking={status === 'speaking' && !isEnded} />
                         {/* Status Indicator - 已结束的会议不显示等待中状态 */}
-                        {!isEnded && (
-                            <div className="relative z-10 mt-4">
-                                <StatusIndicator status={status} />
-                            </div>
-                        )}
+
                         {isEnded && (
                             <div className="relative z-10 mt-4">
                                 <span className="text-red-400 text-sm font-medium">会议已结束</span>

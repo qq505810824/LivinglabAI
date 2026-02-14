@@ -16,6 +16,43 @@ interface UseAliyunASROptions {
     onError?: (error: Error) => void; // 错误回调
 }
 
+/** 等待 WebSocket 变为 OPEN，避免在会议流程中连接未就绪就发 StartTranscription */
+function waitForWebSocketOpen(
+    wsRef: { current: WebSocket | null },
+    timeoutMs: number
+): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const ws = wsRef.current;
+        if (!ws) {
+            reject(new Error('No WebSocket'));
+            return;
+        }
+        if (ws.readyState === WebSocket.OPEN) {
+            resolve();
+            return;
+        }
+        const timer = setTimeout(() => {
+            ws.removeEventListener('open', onOpen);
+            ws.removeEventListener('error', onError);
+            reject(new Error(`WebSocket open timeout after ${timeoutMs}ms`));
+        }, timeoutMs);
+        const onOpen = () => {
+            clearTimeout(timer);
+            ws.removeEventListener('open', onOpen);
+            ws.removeEventListener('error', onError);
+            resolve();
+        };
+        const onError = () => {
+            clearTimeout(timer);
+            ws.removeEventListener('open', onOpen);
+            ws.removeEventListener('error', onError);
+            reject(new Error('WebSocket connection error'));
+        };
+        ws.addEventListener('open', onOpen);
+        ws.addEventListener('error', onError);
+    });
+}
+
 // 生成 message_id（阿里云要求：32位十六进制字符串，不带连字符）
 function generateMessageId(): string {
     // 生成 32 位十六进制字符串（类似 UUID 但无连字符）
@@ -57,6 +94,11 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
     const taskIdRef = useRef<string | null>(null);
     const stopTimeoutRef = useRef<NodeJS.Timeout | null>(null); // StopTranscription 超时关闭连接
     const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null); // 长时间未说话的空闲超时
+    // 保证 WebSocket 回调中始终调用最新的 setState，避免闭包陈旧导致界面不更新
+    const setAccumulatedRef = useRef(setAccumulatedTranscript);
+    const setInterimRef = useRef(setInterimTranscript);
+    setAccumulatedRef.current = setAccumulatedTranscript;
+    setInterimRef.current = setInterimTranscript;
 
     // 检查 Token 是否有效（未过期）
     const isTokenValid = useCallback((token: ASRToken | null): boolean => {
@@ -160,9 +202,9 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                             clearTimeout(idleTimeoutRef.current);
                             idleTimeoutRef.current = null;
                         }
-                        // 中间结果（当前句子的部分识别）
-                        const text = payload?.result || '';
-                        setInterimTranscript(text);
+                        // 中间结果（当前句子的部分识别），用 ref 确保调用最新 setState
+                        const text = (payload?.result ?? payload?.sentence?.text ?? '') || '';
+                        setInterimRef.current(text);
                         onPartialResult?.(text);
                     } else if (header.name === 'TranscriptionCompleted') {
                         // 整段转写结束（如 Stop 后服务端返回），仍通知最终结果
@@ -170,10 +212,10 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                             clearTimeout(idleTimeoutRef.current);
                             idleTimeoutRef.current = null;
                         }
-                        const text = payload?.result || '';
+                        const text = (payload?.result ?? payload?.sentence?.text ?? '') || '';
                         if (text) {
-                            setAccumulatedTranscript((prev) => prev + (prev ? ' ' : '') + text);
-                            setInterimTranscript('');
+                            setAccumulatedRef.current((prev: string) => prev + (prev ? ' ' : '') + text);
+                            setInterimRef.current('');
                         }
                         onFinalResult?.(text);
                     } else if (header.name === 'StopTranscription') {
@@ -222,11 +264,11 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                             clearTimeout(idleTimeoutRef.current);
                             idleTimeoutRef.current = null;
                         }
-                        const text = payload?.result || '';
+                        const text = (payload?.result ?? payload?.sentence?.text ?? '') || '';
                         console.log('Sentence end with text:', text);
                         if (text) {
-                            setAccumulatedTranscript((prev) => prev + (prev ? ' ' : '') + text);
-                            setInterimTranscript('');
+                            setAccumulatedRef.current((prev: string) => prev + (prev ? ' ' : '') + text);
+                            setInterimRef.current('');
                         }
                         // 不再在此处 stopRecording 或调用 onFinalResult
                     } else {
@@ -279,11 +321,19 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
     const startRecording = useCallback(async () => {
         try {
             clearTranscript();
-            if (!isConnected || !wsRef.current) {
+            // 仅当没有可用连接时才 connect（不依赖 isConnected 状态，避免会议流程中闭包陈旧）
+            const needConnect =
+                !wsRef.current ||
+                wsRef.current.readyState === WebSocket.CLOSED ||
+                wsRef.current.readyState === WebSocket.CLOSING;
+            if (needConnect) {
                 await connect();
-                // 等待连接建立
-                await new Promise((resolve) => setTimeout(resolve, 500));
             }
+            // 必须等待 WebSocket 真正 OPEN 再发 StartTranscription，否则会议流程中会因固定延迟不足导致未发送就发音频
+            if (!wsRef.current) {
+                throw new Error('WebSocket not created');
+            }
+            await waitForWebSocketOpen(wsRef, 10000);
 
             // 首次开始录音时发送 StartTranscription，避免长时间空闲
             if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && !isStartSentRef.current) {
