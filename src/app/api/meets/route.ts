@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
             throw new Error('Failed to generate unique meeting code');
         }
 
-        const joinUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://talent-sync-ai-wou3.vercel.app/'}/meet/${meetingCode}`;
+        const joinUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://talent-sync-ai-orcin.vercel.app/'}/meet/${meetingCode}`;
         const now = new Date().toISOString();
 
         const { data: newMeet, error } = await supabaseAdmin
