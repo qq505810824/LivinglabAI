@@ -1,9 +1,10 @@
 'use client'
 
 import { useAuth } from '@/hooks/useAuth'
-import { Bell, Search } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import MenuButton from './MenuButton'
 
 export function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -54,10 +55,6 @@ export function Header() {
                     <span className="font-bold text-xl tracking-tight text-gray-900">TalentSync AI</span>
                 </div>
                 <div className="flex items-center gap-6">
-                    <div className="hidden md:flex items-center bg-gray-100 rounded-lg px-4 py-2 text-gray-500 gap-2 w-64">
-                        <Search size={18} />
-                        <span className="text-sm">Search employees...</span>
-                    </div>
                     <button className="p-3 text-gray-500 hover:bg-gray-100 rounded-full relative transition-colors">
                         <Bell size={22} />
                         <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
@@ -67,10 +64,7 @@ export function Header() {
                             <p className="text-md font-semibold text-gray-900">{user?.username}</p>
                             <p className="text-xs text-gray-500">{user?.email}</p>
                         </div>
-                        <div className="w-10 h-10 bg-gray-900 rounded-full overflow-hidden border-2 border-gray-200 flex items-center justify-center text-white text-sm font-medium shadow-sm">
-                            {/* {user?.avatar} */}
-                            HR
-                        </div>
+                        <MenuButton name={user?.username} email={user?.email} />
                     </div>
                 </div>
             </div>

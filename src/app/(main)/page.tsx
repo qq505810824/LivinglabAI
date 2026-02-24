@@ -13,11 +13,16 @@ export default function Home() {
     const [validationError, setValidationError] = useState<string | null>(null);
     const [isValidating, setIsValidating] = useState(false);
 
+    const digitsOnly = meetingCode.replace(/\D/g, '');
+    const isNineDigits = digitsOnly.length === 9;
+    // 仅用于显示：每三位数字中间加空格，如 100083426 -> "100 083 426"
+    const displayCode = digitsOnly.replace(/(\d{3})(?=\d)/g, '$1 ');
+
     const handleJoinMeeting = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!meetingCode.trim()) {
-            setValidationError('请输入会议号');
+        if (!isNineDigits) {
+            setValidationError('请输入9位数字会议号');
             return;
         }
 
@@ -25,7 +30,7 @@ export default function Home() {
         setValidationError(null);
 
         try {
-            const meetData = await getMeetByCode(meetingCode.trim().toUpperCase());
+            const meetData = await getMeetByCode(digitsOnly);
 
             if (meetData) {
                 // 检查会议状态
@@ -36,7 +41,7 @@ export default function Home() {
                 }
 
                 // 验证成功，准备跳转
-                const code = meetingCode.trim().toUpperCase();
+                const code = digitsOnly;
 
                 if (meetData.status === 'ended') {
                     // 已结束的会议跳转到总结页面
@@ -58,7 +63,7 @@ export default function Home() {
     };
 
     return (
-        <div className="h-full mt-14 bg-gradient-to-br from-indigo-50 via-white to-teal-50 flex items-center justify-center px-4">
+        <div className="h-full mt-14  flex items-center justify-center px-4">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -84,13 +89,19 @@ export default function Home() {
                             <input
                                 id="meetingCode"
                                 type="text"
-                                value={meetingCode}
+                                inputMode="numeric"
+                                autoComplete="off"
+                                value={displayCode}
                                 onChange={(e) => {
-                                    setMeetingCode(e.target.value.toUpperCase());
+                                    const digits = e.target.value.replace(/\D/g, '').slice(0, 9);
+                                    setMeetingCode(digits);
                                     setValidationError(null);
                                 }}
-                                placeholder="请输入会议号（如：100083426）"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center text-lg font-mono tracking-wider uppercase"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
+                                }}
+                                placeholder="请输入会议号(如: 100083426)"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center text-sm sm:text-lg font-mono tracking-wider"
                                 disabled={isValidating}
                                 autoFocus
                             />
@@ -101,7 +112,7 @@ export default function Home() {
                         {/* 提交按钮 */}
                         <button
                             type="submit"
-                            disabled={isValidating || !meetingCode.trim()}
+                            disabled={isValidating || !isNineDigits}
                             className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
                         >
                             {isValidating ? (
