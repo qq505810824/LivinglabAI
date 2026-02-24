@@ -3,15 +3,18 @@
 import { useConversations } from '@/hooks/useConversations';
 import { useMeets } from '@/hooks/useMeets';
 import { useTodos } from '@/hooks/useTodos';
+import { TodoListEditable } from '@/components/todo/TodoListEditable';
 import type { Conversation, Todo } from '@/types/meeting';
-import { ArrowLeft, CheckCircle, Clock, Edit2, MessageSquare, Save, User, X } from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
+import { ArrowLeft, Clock, MessageSquare, User } from 'lucide-react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function MeetSummaryPage() {
     const params = useParams();
     const router = useRouter();
     const meetingCode = params.code as string;
+    const searchParams = useSearchParams();
+    const userMeetId = searchParams.get('userMeetId');
 
     const { getMeetByCode, getMeetById, loading: meetLoading } = useMeets();
     const { getTodos, generateTodos, updateTodo, confirmTodo, loading: todosLoading } = useTodos();
@@ -20,21 +23,50 @@ export default function MeetSummaryPage() {
     const [summary, setSummary] = useState<string>('');
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
-    const [editForm, setEditForm] = useState<{
-        title: string;
-        description: string;
-        priority: 'low' | 'medium' | 'high';
-        dueDate: string;
-        reminderTime: string;
-    } | null>(null);
 
     useEffect(() => {
         loadData();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [meetingCode, userMeetId]);
 
     const loadData = async () => {
         try {
+            // 如果带有 userMeetId，则按“个人会议实例”加载数据
+            if (userMeetId) {
+                try {
+                    setIsGenerating(false);
+                    const res = await fetch(`/api/my/meet-summary?userMeetId=${encodeURIComponent(userMeetId)}`);
+                    const data = await res.json();
+                    if (!data.success) {
+                        throw new Error(data.error || data.message || 'Failed to fetch my meet summary');
+                    }
+
+                    const conversationsData = data.data.conversations || [];
+                    const todosData = data.data.todos || [];
+                    const summaryData = data.data.summary || null;
+
+                    if (Array.isArray(conversationsData)) {
+                        const sortedConversations = [...conversationsData].sort(
+                            (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                        );
+                        setConversations(sortedConversations);
+                    }
+
+                    if (Array.isArray(todosData)) {
+                        setTodos(todosData);
+                    }
+
+                    if (summaryData && typeof summaryData === 'object' && 'summary' in summaryData) {
+                        setSummary((summaryData as any).summary || '');
+                    }
+                } catch (err) {
+                    console.error('Failed to load my meet summary:', err);
+                } finally {
+                    return;
+                }
+            }
+
+            // 否则走原有基于整个会议的逻辑（兼容旧流程）
             const meetData = await getMeetByCode(meetingCode);
             if (meetData) {
                 // 获取完整会议信息（包含summary、conversations、todos）
@@ -106,57 +138,6 @@ export default function MeetSummaryPage() {
         }
     };
 
-    const handleConfirmTodo = async (id: string) => {
-        try {
-            await confirmTodo(id);
-            setTodos(todos.map(t => t.id === id ? { ...t, status: 'confirmed' as const } : t));
-        } catch (err) {
-            console.error('Failed to confirm todo:', err);
-        }
-    };
-
-    const handleStartEdit = (todo: Todo) => {
-        // 检查是否可以编辑（已完成或进行中的不可编辑）
-        if (todo.status === 'completed' || todo.status === 'in_progress') {
-            return;
-        }
-
-        setEditingTodoId(todo.id);
-        setEditForm({
-            title: todo.title,
-            description: todo.description || '',
-            priority: todo.priority,
-            dueDate: todo.due_date ? new Date(todo.due_date).toISOString().slice(0, 16) : '',
-            reminderTime: todo.reminder_time ? new Date(todo.reminder_time).toISOString().slice(0, 16) : '',
-        });
-    };
-
-    const handleCancelEdit = () => {
-        setEditingTodoId(null);
-        setEditForm(null);
-    };
-
-    const handleSaveEdit = async (id: string) => {
-        if (!editForm) return;
-
-        try {
-            const updates: Partial<Todo> = {
-                title: editForm.title,
-                description: editForm.description || null,
-                priority: editForm.priority,
-                due_date: editForm.dueDate ? new Date(editForm.dueDate).toISOString() : null,
-                reminder_time: editForm.reminderTime ? new Date(editForm.reminderTime).toISOString() : null,
-            };
-
-            await updateTodo(id, updates);
-            setTodos(todos.map(t => t.id === id ? { ...t, ...updates } : t));
-            setEditingTodoId(null);
-            setEditForm(null);
-        } catch (err) {
-            console.error('Failed to update todo:', err);
-        }
-    };
-
     const handleUpdateTodo = async (id: string, updates: Partial<Todo>) => {
         try {
             await updateTodo(id, updates);
@@ -166,26 +147,13 @@ export default function MeetSummaryPage() {
         }
     };
 
-    const canEdit = (status: string) => {
-        return status === 'draft' || status === 'confirmed';
-    };
-
-    const getPriorityColor = (priority: string) => {
-        const colorMap: Record<string, string> = {
-            low: 'bg-green-100 text-green-700',
-            medium: 'bg-yellow-100 text-yellow-700',
-            high: 'bg-red-100 text-red-700',
-        };
-        return colorMap[priority] || 'bg-gray-100 text-gray-700';
-    };
-
-    const getPriorityText = (priority: string) => {
-        const textMap: Record<string, string> = {
-            low: '低',
-            medium: '中',
-            high: '高',
-        };
-        return textMap[priority] || priority;
+    const handleConfirmTodo = async (id: string) => {
+        try {
+            await confirmTodo(id);
+            setTodos(todos.map(t => t.id === id ? { ...t, status: 'confirmed' as const } : t));
+        } catch (err) {
+            console.error('Failed to confirm todo:', err);
+        }
     };
 
     if (meetLoading || isGenerating || conversationsLoading) {
@@ -281,208 +249,11 @@ export default function MeetSummaryPage() {
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-6">任务列表</h2>
-                <div className="space-y-4">
-                    {todos.map((todo) => {
-                        const isEditing = editingTodoId === todo.id;
-                        const editable = canEdit(todo.status);
-
-                        return (
-                            <div
-                                key={todo.id}
-                                className={`p-4 rounded-lg border ${todo.status === 'confirmed'
-                                    ? 'bg-green-50 border-green-200'
-                                    : todo.status === 'completed'
-                                        ? 'bg-gray-50 border-gray-200 opacity-60'
-                                        : todo.status === 'in_progress'
-                                            ? 'bg-blue-50 border-blue-200'
-                                            : 'bg-white border-gray-200'
-                                    }`}
-                            >
-                                {isEditing && editForm ? (
-                                    // 编辑模式
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                任务标题 *
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={editForm.title}
-                                                onChange={(e) =>
-                                                    setEditForm({ ...editForm, title: e.target.value })
-                                                }
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                                placeholder="输入任务标题"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                任务描述
-                                            </label>
-                                            <textarea
-                                                value={editForm.description}
-                                                onChange={(e) =>
-                                                    setEditForm({ ...editForm, description: e.target.value })
-                                                }
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                                rows={3}
-                                                placeholder="输入任务描述（可选）"
-                                            />
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    优先级
-                                                </label>
-                                                <select
-                                                    value={editForm.priority}
-                                                    onChange={(e) =>
-                                                        setEditForm({
-                                                            ...editForm,
-                                                            priority: e.target.value as 'low' | 'medium' | 'high',
-                                                        })
-                                                    }
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                                >
-                                                    <option value="low">低</option>
-                                                    <option value="medium">中</option>
-                                                    <option value="high">高</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    截止时间
-                                                </label>
-                                                <input
-                                                    type="datetime-local"
-                                                    value={editForm.dueDate}
-                                                    onChange={(e) =>
-                                                        setEditForm({ ...editForm, dueDate: e.target.value })
-                                                    }
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    提醒时间
-                                                </label>
-                                                <input
-                                                    type="datetime-local"
-                                                    value={editForm.reminderTime}
-                                                    onChange={(e) =>
-                                                        setEditForm({ ...editForm, reminderTime: e.target.value })
-                                                    }
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-2 pt-2">
-                                            <button
-                                                onClick={() => handleSaveEdit(todo.id)}
-                                                disabled={!editForm.title.trim()}
-                                                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                <Save className="w-4 h-4" />
-                                                确认更新
-                                            </button>
-                                            <button
-                                                onClick={handleCancelEdit}
-                                                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                                            >
-                                                <X className="w-4 h-4" />
-                                                取消
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    // 查看模式
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold text-gray-900 mb-1">{todo.title}</h3>
-                                            {todo.description && (
-                                                <p className="text-sm text-gray-600 mb-2">{todo.description}</p>
-                                            )}
-                                            <div className="flex items-center gap-3 text-xs flex-wrap">
-                                                <span className={`px-2 py-1 rounded ${getPriorityColor(todo.priority)}`}>
-                                                    {getPriorityText(todo.priority)}优先级
-                                                </span>
-                                                {todo.due_date && (
-                                                    <div className="flex items-center gap-1 text-gray-500">
-                                                        <Clock className="w-3 h-3" />
-                                                        <span>
-                                                            截止: {new Date(todo.due_date).toLocaleString('zh-CN', {
-                                                                year: 'numeric',
-                                                                month: '2-digit',
-                                                                day: '2-digit',
-                                                                hour: '2-digit',
-                                                                minute: '2-digit',
-                                                            })}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                {todo.reminder_time && (
-                                                    <div className="flex items-center gap-1 text-gray-500">
-                                                        <Clock className="w-3 h-3" />
-                                                        <span>
-                                                            提醒: {new Date(todo.reminder_time).toLocaleString('zh-CN', {
-                                                                year: 'numeric',
-                                                                month: '2-digit',
-                                                                day: '2-digit',
-                                                                hour: '2-digit',
-                                                                minute: '2-digit',
-                                                            })}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {editable && (
-                                                <button
-                                                    onClick={() => handleStartEdit(todo)}
-                                                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                                                    title="编辑任务"
-                                                >
-                                                    <Edit2 className="w-5 h-5" />
-                                                </button>
-                                            )}
-                                            {todo.status === 'draft' && (
-                                                <button
-                                                    onClick={() => handleConfirmTodo(todo.id)}
-                                                    className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                                    title="确认任务"
-                                                >
-                                                    <CheckCircle className="w-5 h-5" />
-                                                </button>
-                                            )}
-                                            {todo.status === 'confirmed' && (
-                                                <span className="text-xs text-green-600 font-semibold">已确认</span>
-                                            )}
-                                            {todo.status === 'completed' && (
-                                                <span className="text-xs text-gray-500 font-semibold">已完成</span>
-                                            )}
-                                            {todo.status === 'in_progress' && (
-                                                <span className="text-xs text-blue-600 font-semibold">进行中</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {todos.length === 0 && (
-                    <div className="text-center py-12">
-                        <p className="text-gray-500">暂无任务</p>
-                    </div>
-                )}
+                <TodoListEditable
+                    todos={todos}
+                    onConfirmTodo={handleConfirmTodo}
+                    onUpdateTodo={handleUpdateTodo}
+                />
             </div>
         </div>
     );

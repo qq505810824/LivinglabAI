@@ -18,7 +18,7 @@ export const MeetCard = ({ meet, onEdit, onDelete, onCopy, isDeleting }: MeetCar
     const [copiedType, setCopiedType] = useState<'code' | 'url' | null>(null);
     const getStatusColor = (status: string) => {
         const colorMap: Record<string, string> = {
-            pending: 'bg-gray-100 text-gray-700',
+            pending: 'bg-green-100 text-green-700',
             ongoing: 'bg-green-100 text-green-700',
             ended: 'bg-blue-100 text-blue-700',
             cancelled: 'bg-red-100 text-red-700',
@@ -28,8 +28,7 @@ export const MeetCard = ({ meet, onEdit, onDelete, onCopy, isDeleting }: MeetCar
 
     const getStatusText = (status: string) => {
         const statusMap: Record<string, string> = {
-            pending: '待开始',
-            ongoing: '进行中',
+            pending: '进行中',
             ended: '已结束',
             cancelled: '已取消',
         };

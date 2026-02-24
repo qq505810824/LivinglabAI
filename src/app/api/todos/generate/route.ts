@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
         await delay(2000); // 模拟LLM处理时间
 
         const body = await request.json();
-        const { meetId, userId } = body;
+        const { meetId, userId, userMeetId } = body as { meetId: string; userId?: string; userMeetId?: string };
 
         if (!meetId) {
             return NextResponse.json(
@@ -22,12 +22,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // 从 Supabase 获取该会议的所有对话
-        const { data: conversations, error: convError } = await supabaseAdmin
+        // 从 Supabase 获取该会议/用户会议实例的所有对话
+        const convQuery = supabaseAdmin
             .from('conversations')
             .select('*')
-            .eq('meet_id', meetId)
             .order('created_at', { ascending: true });
+
+        const { data: conversations, error: convError } = userMeetId
+            ? await convQuery.eq('user_meet_id', userMeetId)
+            : await convQuery.eq('meet_id', meetId);
 
         if (convError) {
             console.warn('Failed to fetch conversations:', convError.message);
@@ -53,6 +56,8 @@ export async function POST(request: NextRequest) {
         // 注意：不生成临时 ID，让数据库自动生成 UUID
         const todoDataToInsert = selectedTodoTemplates.map((template, index) => ({
             meet_id: meetId,
+            user_meet_id: userMeetId || null,
+            owner_user_id: userId || null,
             title: template.title,
             description: template.description,
             assignee_id: userId || null,
@@ -85,27 +90,66 @@ export async function POST(request: NextRequest) {
         }
 
         // 保存 summary 到 Supabase
-        // 注意：不传递 id 字段，让 Supabase 自动生成 UUID
-        // 使用 upsert，如果已存在则更新，不存在则插入
-        const { data: savedSummary, error: summaryError } = await supabaseAdmin
-            .from('meet_summaries')
-            .upsert(
-                {
-                    // 不传递 id，让数据库自动生成 UUID（如果是新记录）
+        // 对于带 userMeetId 的新流程：每个用户会议实例一条总结记录
+        let savedSummary: MeetSummary;
+        if (userMeetId) {
+            const { data, error: summaryError } = await supabaseAdmin
+                .from('meet_summaries')
+                .insert({
                     meet_id: meetId,
+                    user_meet_id: userMeetId,
                     summary: summaryText,
                     key_points: mockSummaryTemplate.key_points,
                     participants: [],
                     generated_at: now,
-                },
-                { onConflict: 'meet_id' }
-            )
-            .select()
-            .single();
+                })
+                .select()
+                .single();
 
-        if (summaryError) {
-            console.error('Failed to save summary:', summaryError);
-            throw new Error(`Failed to save summary: ${summaryError.message}`);
+            if (summaryError) {
+                console.error('Failed to save summary:', summaryError);
+                throw new Error(`Failed to save summary: ${summaryError.message}`);
+            }
+
+            savedSummary = data as MeetSummary;
+        } else {
+            // 兼容旧流程：按 meet_id upsert 一条全局总结
+            const { data, error: summaryError } = await supabaseAdmin
+                .from('meet_summaries')
+                .upsert(
+                    {
+                        meet_id: meetId,
+                        summary: summaryText,
+                        key_points: mockSummaryTemplate.key_points,
+                        participants: [],
+                        generated_at: now,
+                    },
+                    { onConflict: 'meet_id' }
+                )
+                .select()
+                .single();
+
+            if (summaryError) {
+                console.error('Failed to save summary:', summaryError);
+                throw new Error(`Failed to save summary: ${summaryError.message}`);
+            }
+
+            savedSummary = data as MeetSummary;
+        }
+
+        // 如果提供了 userMeetId，则标记该用户会议实例已完成
+        if (userMeetId) {
+            const { error: updateUserMeetError } = await supabaseAdmin
+                .from('user_meets')
+                .update({
+                    status: 'completed',
+                    completed_at: now,
+                })
+                .eq('id', userMeetId);
+
+            if (updateUserMeetError) {
+                console.warn('Failed to update user_meets status:', updateUserMeetError.message);
+            }
         }
 
         const response: ApiResponse<{
@@ -113,10 +157,10 @@ export async function POST(request: NextRequest) {
             summary: MeetSummary;
         }> = {
             success: true,
-            data: {
-                todos: savedTodos, // 使用数据库返回的 UUID
-                summary: savedSummary as MeetSummary, // 使用数据库返回的 UUID
-            },
+                data: {
+                    todos: savedTodos,
+                    summary: savedSummary,
+                },
         };
 
         return NextResponse.json(response);

@@ -102,7 +102,18 @@ async function handleSSEStream(
 export async function POST(request: NextRequest) {
     try {
         const body: SendMessageRequest = await request.json();
-        const { meetId, userId, audioUrl, title, topic, hints, transcriptionText, audioDuration, conversation_id } = body;
+        const {
+            meetId,
+            userId,
+            userMeetId,
+            audioUrl,
+            title,
+            topic,
+            hints,
+            transcriptionText,
+            audioDuration,
+            conversation_id,
+        } = body;
 
         // conversation_id 是可选的，第一次对话时为空，后续对话时传入以保持上下文
 
@@ -157,6 +168,7 @@ export async function POST(request: NextRequest) {
             id: messageId || generateId(),
             meet_id: meetId,
             user_id: userId,
+            user_meet_id: userMeetId,
             user_audio_url: audioUrl,
             user_message_text: transcriptionText,
             user_audio_duration: audioDuration,

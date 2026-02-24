@@ -234,6 +234,8 @@ function VoiceConversationContainer({
         conversations,
         status,
         isRecording,
+        userMeetId,
+        userMeetStatus,
         transcriptLive,
         isListening,
         handleStartRecording,
@@ -281,22 +283,13 @@ function VoiceConversationContainer({
                 }
             }
 
-            // 2. 更新会议状态
-            await fetch(`/api/meets/${meet.id}/status`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ status: 'ended' }),
-            });
-
-            // 3. 生成会议总结和任务列表
+            // 2. 生成会议总结和任务列表（基于当前用户会议实例）
             const generateResponse = await fetch('/api/todos/generate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ meetId: meet.id, userId }),
+                body: JSON.stringify({ meetId: meet.id, userId, userMeetId }),
             });
 
             if (!generateResponse.ok) {
@@ -324,6 +317,8 @@ function VoiceConversationContainer({
                 conversations={conversations}
                 status={status}
                 isRecording={isRecording}
+                userMeetId={userMeetId}
+                userMeetStatus={userMeetStatus}
                 transcriptLive={transcriptLive}
                 isListening={isListening}
                 onStartRecording={handleStartRecording}

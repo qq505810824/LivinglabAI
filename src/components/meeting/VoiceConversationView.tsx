@@ -13,6 +13,10 @@ interface VoiceConversationViewProps {
     conversations: Conversation[];
     status: 'idle' | 'recording' | 'transcribing' | 'processing' | 'speaking' | 'listening';
     isRecording: boolean;
+    /** 当前用户在该会议下的 user_meets.status（in_progress/completed/cancelled/...） */
+    userMeetStatus?: string | null;
+    /** 当前用户在该会议下的 user_meets.id，用于精确查看个人结果 */
+    userMeetId?: string | null;
     transcriptLive?: string; // 实时转写字幕（仅阿里云 ASR 方案有效）
     isListening?: boolean; // 是否在监听状态（仅阿里云 ASR 方案有效）
     onStartRecording: () => void;
@@ -27,6 +31,8 @@ export const VoiceConversationView = ({
     conversations,
     status,
     isRecording,
+    userMeetStatus,
+    userMeetId,
     transcriptLive,
     isListening,
     onStartRecording,
@@ -36,7 +42,10 @@ export const VoiceConversationView = ({
 }: VoiceConversationViewProps) => {
     const [time, setTime] = useState(0);
     const router = useRouter();
-    const isEnded = meet.status === 'ended';
+    // 优先使用用户会议实例状态，其次回退到全局会议状态
+    const isUserEnded = userMeetStatus === 'completed' || userMeetStatus === 'cancelled';
+    const isMeetEnded = meet.status === 'ended' || meet.status === 'cancelled';
+    const isEnded = isUserEnded || isMeetEnded;
 
     // 只有未结束的会议才启动计时器
     useEffect(() => {
@@ -65,8 +74,11 @@ export const VoiceConversationView = ({
     // 处理左侧返回按钮点击
     const handleBackClick = () => {
         if (isEnded) {
-            // 已结束的会议跳转到summary页面
-            router.push(`/meet/${meet.meeting_code}/summary`);
+            // 已结束的会议跳转到summary页面（按用户会议实例）
+            const summaryUrl = userMeetId
+                ? `/meet/${meet.meeting_code}/summary?userMeetId=${userMeetId}`
+                : `/meet/${meet.meeting_code}/summary`;
+            router.push(summaryUrl);
         } else {
             // 未结束的会议返回上一页
             router.back();
@@ -75,8 +87,10 @@ export const VoiceConversationView = ({
 
     const handleGoToSummary = () => {
         if (isEnded) {
-            // 已结束的会议跳转到summary页面
-            router.push(`/meet/${meet.meeting_code}/summary`);
+            const summaryUrl = userMeetId
+                ? `/meet/${meet.meeting_code}/summary?userMeetId=${userMeetId}`
+                : `/meet/${meet.meeting_code}/summary`;
+            router.push(summaryUrl);
         }
     };
 
@@ -101,7 +115,7 @@ export const VoiceConversationView = ({
                             {meet.status && (
                                 <span className={`text-[11px] bg-gray-500 px-1  rounded-full backdrop-blur-sm font-medium ${isEnded ? 'text-red-400' : 'text-gray-300'
                                     }`}>
-                                    {getStatusText(meet.status)}
+                                    {getStatusText(isUserEnded ? 'ended' : meet.status)}
                                 </span>
                             )}
                         </div>

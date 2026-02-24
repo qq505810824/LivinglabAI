@@ -1,6 +1,6 @@
 import { synthesizeTTS } from '@/lib/aliyun-tts';
 import { transcribeAudioWithDify } from '@/lib/difyTranscription';
-import type { Conversation, Meet } from '@/types/meeting';
+import type { ApiResponse, Conversation, Meet } from '@/types/meeting';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAliyunASR } from './useAliyunASR';
 import { useConversations } from './useConversations';
@@ -22,6 +22,8 @@ export const useVoiceConversation = (
     const { asrMode = 'dify' } = options;
 
     const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [userMeetId, setUserMeetId] = useState<string | null>(null);
+    const [userMeetStatus, setUserMeetStatus] = useState<string | null>(null);
     const [status, setStatus] = useState<'idle' | 'recording' | 'transcribing' | 'processing' | 'speaking' | 'listening'>('idle');
     // Dify conversation_id - 用于维护对话上下文，从第一次对话开始到会议结束
     const [difyConversationId, setDifyConversationId] = useState<string>('');
@@ -42,6 +44,48 @@ export const useVoiceConversation = (
     const recordingStartTimeRef = useRef<number | null>(null);
     // 用于存储 asrStartRecording 函数，避免循环依赖
     const asrStartRecordingRef = useRef<(() => Promise<void>) | null>(null);
+    // 进入对话前，确保为 (meet, user) 获取/创建 user_meet 实例
+    useEffect(() => {
+        let cancelled = false;
+
+        const joinUserMeet = async () => {
+            try {
+                if (!meet?.id || !userId) return;
+
+                const response = await fetch('/api/user-meets/join', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        meetId: meet.id,
+                        userId,
+                    }),
+                });
+
+                const data: ApiResponse<{
+                    id: string;
+                    status: string;
+                }> = await response.json();
+
+                console.log('joinUserMeet data:', data);
+
+                if (!cancelled && data.success && data.data) {
+                    setUserMeetId(data.data.id);
+                    setUserMeetStatus(data.data.status);
+                }
+            } catch (error) {
+                console.error('Failed to join user_meets:', error);
+            }
+        };
+
+        void joinUserMeet();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [meet.id, userId]);
+
 
     // 处理最终转写结果（阿里云 ASR 方案）
     const handleFinalTranscription = useCallback(
@@ -61,10 +105,19 @@ export const useVoiceConversation = (
                     : 0;
                 recordingStartTimeRef.current = null;
 
+                // 没有 userMeetId 时无法安全归属数据，直接中止本轮（理论上进入页面时就应已 join）
+                if (!userMeetId) {
+                    console.warn('No userMeetId, skip processing transcription');
+                    setStatus('idle');
+                    setIsListening(false);
+                    return;
+                }
+
                 // 调用 LLM 获取回复
                 const response = await sendMessage({
                     meetId: meet.id,
                     userId,
+                    userMeetId,
                     audioUrl: ``,
                     title: meet.title || '',
                     topic: meet.description || '',
@@ -84,6 +137,7 @@ export const useVoiceConversation = (
                     id: response?.conversationId || `conv-${Date.now()}`,
                     meet_id: meet.id,
                     user_id: userId,
+                    user_meet_id: userMeetId,
                     user_audio_url: ``,
                     user_message_text: transcriptionText,
                     user_audio_duration: audioDuration,
@@ -133,7 +187,7 @@ export const useVoiceConversation = (
                 isProcessingRef.current = false;
             }
         },
-        [meet.id, meet.status, meet.title, meet.description, userId, sendMessage, playAudio, text_to_audio, difyConversationId]
+        [meet.id, meet.status, meet.title, meet.description, userId, sendMessage, playAudio, text_to_audio, difyConversationId, userMeetId]
     );
 
     // 阿里云 ASR hook（需要在 handleFinalTranscription 之后定义，以便在回调中使用）
@@ -214,11 +268,19 @@ export const useVoiceConversation = (
                 audioDuration = Math.ceil(mp3Blob.size / 16000);
             }
 
+            // 没有 userMeetId 时无法安全归属数据，直接中止本轮
+            if (!userMeetId) {
+                console.warn('No userMeetId, skip processing transcription (Dify mode)');
+                setStatus('idle');
+                return;
+            }
+
             // 发送消息并获取AI回复（SSE 处理已在 API 中完成）
             setStatus('processing');
             const response = await sendMessage({
                 meetId: meet.id,
                 userId,
+                userMeetId,
                 audioUrl: ``,
                 title: meet.title || '',
                 topic: meet.description || '',
@@ -242,6 +304,7 @@ export const useVoiceConversation = (
                 id: response?.conversationId || `conv-${Date.now()}`,
                 meet_id: meet.id,
                 user_id: userId,
+                user_meet_id: userMeetId,
                 user_audio_url: ``,
                 user_message_text: transcriptionText,
                 user_audio_duration: audioDuration,
@@ -266,7 +329,7 @@ export const useVoiceConversation = (
             console.error('Failed to process recording:', error);
             setStatus('idle');
         }
-    }, [stopRecording, meet.id, meet.title, meet.description, userId, sendMessage, playAudio, text_to_audio, difyConversationId]);
+    }, [stopRecording, meet.id, meet.title, meet.description, userId, sendMessage, playAudio, text_to_audio, difyConversationId, userMeetId]);
 
     // 启动会话（阿里云 ASR 方案）
     const startSession = useCallback(async () => {
@@ -382,6 +445,8 @@ export const useVoiceConversation = (
         conversations,
         status,
         isRecording: currentIsRecording,
+        userMeetId,
+        userMeetStatus,
         difyConversationId, // 暴露 conversation_id，方便调试
         transcriptLive, // 实时转写字幕（仅阿里云 ASR 方案有效）
         isListening, // 是否在监听状态（仅阿里云 ASR 方案有效）
@@ -395,3 +460,4 @@ export const useVoiceConversation = (
         resetConversation,
     };
 };
+

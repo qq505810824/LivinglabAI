@@ -45,6 +45,7 @@ export interface Conversation {
     id: string;
     meet_id: string;
     user_id: string;
+    user_meet_id?: string;
     user_audio_url: string;
     user_message_text: string;
     user_audio_duration: number | null;
@@ -60,6 +61,7 @@ export interface Conversation {
 export interface Todo {
     id: string;
     meet_id: string;
+    user_meet_id?: string;
     title: string;
     description: string | null;
     assignee_id: string | null;
@@ -77,6 +79,7 @@ export interface Todo {
 export interface MeetSummary {
     id: string;
     meet_id: string;
+    user_meet_id?: string;
     summary: string;
     key_points: Array<{
         point: string;
@@ -111,6 +114,7 @@ export interface CreateMeetRequest {
 export interface SendMessageRequest {
     meetId: string;
     userId: string;
+    userMeetId?: string;
     audioUrl: string;
     title?: string;
     topic?: string;

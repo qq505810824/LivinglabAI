@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
             const insertData: any = {
                 meet_id: rest.meet_id,
                 user_id: rest.user_id,
+                user_meet_id: (rest as any).user_meet_id ?? null,
                 user_audio_url: rest.user_audio_url || null,
                 user_message_text: rest.user_message_text,
                 user_audio_duration: rest.user_audio_duration || null,
