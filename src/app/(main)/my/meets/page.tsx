@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { LogIn, MessageSquare, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, Clock, LogIn, MessageSquare, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -191,7 +191,7 @@ export default function MyMeetsPage() {
                             <div className="ml-4 flex flex-col gap-2">
                                 {isInProgress && um.meet && (
                                     <button
-                                        onClick={() => router.push(`/meet/${um.meet.meeting_code}`)}
+                                        onClick={() => router.push(`/meet/${um?.meet?.meeting_code}`)}
                                         className="inline-flex items-center px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700"
                                     >
                                         <MessageSquare className="w-3.5 h-3.5 mr-1" />
@@ -202,7 +202,7 @@ export default function MyMeetsPage() {
                                     <button
                                         onClick={() =>
                                             router.push(
-                                                `/meet/${um.meet.meeting_code}/summary?userMeetId=${um.id}`
+                                                `/meet/${um?.meet?.meeting_code}/summary?userMeetId=${um.id}`
                                             )
                                         }
                                         className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-medium hover:bg-green-700"
@@ -213,7 +213,7 @@ export default function MyMeetsPage() {
                                 )}
                                 {isCancelled && um.meet && (
                                     <button
-                                        onClick={() => router.push(`/meet/${um.meet.meeting_code}`)}
+                                        onClick={() => router.push(`/meet/${um?.meet?.meeting_code}`)}
                                         className="inline-flex items-center px-3 py-1.5 rounded-lg bg-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-300"
                                     >
                                         重新进入
