@@ -85,6 +85,7 @@ export default function MeetPage() {
     // 加载会议信息
     useEffect(() => {
         if (meetingCode) {
+
             loadMeet();
         }
     }, [meetingCode]);

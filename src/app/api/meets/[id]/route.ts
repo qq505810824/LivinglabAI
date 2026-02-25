@@ -138,16 +138,16 @@ export async function PUT(
         }
 
         // 已结束的会议不能修改
-        if (existingMeet.status === 'ended') {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: 'Validation error',
-                    message: 'Cannot update ended meeting',
-                },
-                { status: 400 }
-            );
-        }
+        // if (existingMeet.status === 'ended') {
+        //     return NextResponse.json(
+        //         {
+        //             success: false,
+        //             error: 'Validation error',
+        //             message: 'Cannot update ended meeting',
+        //         },
+        //         { status: 400 }
+        //     );
+        // }
 
         const body = await request.json();
         const { title, description, startTime, duration } = body;

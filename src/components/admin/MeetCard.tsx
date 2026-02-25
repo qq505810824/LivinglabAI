@@ -60,9 +60,9 @@ export const MeetCard = ({ meet, onEdit, onDelete, onCopy, isDeleting }: MeetCar
                 <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-bold text-gray-900 truncate">{meet.title}</h3>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ml-2 ${getStatusColor(meet.status)}`}>
+                {/* <span className={`px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ml-2 ${getStatusColor(meet.status)}`}>
                     {getStatusText(meet.status)}
-                </span>
+                </span> */}
             </div>
 
             {/* 描述 */}
@@ -142,27 +142,25 @@ export const MeetCard = ({ meet, onEdit, onDelete, onCopy, isDeleting }: MeetCar
                 </Link>
 
                 {/* 编辑按钮 - 已结束的会议不显示 */}
-                {!isEnded && (
-                    <button
-                        onClick={() => onEdit(meet)}
-                        className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                        title="编辑会议"
-                    >
-                        <Edit className="w-4 h-4" />
-                    </button>
-                )}
+
+                <button
+                    onClick={() => onEdit(meet)}
+                    className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    title="编辑会议"
+                >
+                    <Edit className="w-4 h-4" />
+                </button>
 
                 {/* 删除按钮 - 已结束的会议不显示 */}
-                {!isEnded && (
-                    <button
-                        onClick={() => onDelete(meet.id)}
-                        disabled={isDeleting}
-                        className="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50"
-                        title="删除会议"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
-                )}
+
+                <button
+                    onClick={() => onDelete(meet.id)}
+                    disabled={isDeleting}
+                    className="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50"
+                    title="删除会议"
+                >
+                    <Trash2 className="w-4 h-4" />
+                </button>
             </div>
         </div>
     );

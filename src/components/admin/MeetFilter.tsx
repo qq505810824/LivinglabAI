@@ -1,7 +1,7 @@
 'use client';
 
 import type { MeetFilter as MeetFilterType } from '@/hooks/useAdminMeets';
-import { Filter, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 interface MeetFilterProps {
     filter: MeetFilterType;
@@ -37,7 +37,7 @@ export const MeetFilter = ({ filter, onFilterChange, onClear }: MeetFilterProps)
                 </div>
 
                 {/* 状态筛选 */}
-                <div className="min-w-[150px]">
+                {/* <div className="min-w-[150px]">
                     <select
                         value={filter.status || ''}
                         onChange={handleStatusChange}
@@ -49,7 +49,7 @@ export const MeetFilter = ({ filter, onFilterChange, onClear }: MeetFilterProps)
                         <option value="ended">已结束</option>
                         <option value="cancelled">已取消</option>
                     </select>
-                </div>
+                </div> */}
 
                 {/* 清除筛选按钮 */}
                 {hasActiveFilter && (
@@ -59,19 +59,18 @@ export const MeetFilter = ({ filter, onFilterChange, onClear }: MeetFilterProps)
                             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
                         >
                             <X className="w-4 h-4" />
-                            清除筛选
                         </button>
                     </div>
                 )}
 
                 {/* 筛选图标 */}
-                {!hasActiveFilter && (
+                {/* {!hasActiveFilter && (
                     <div className="flex items-end">
                         <div className="px-4 py-2 text-gray-400">
                             <Filter className="w-5 h-5" />
                         </div>
                     </div>
-                )}
+                )} */}
             </div>
         </div>
     );
