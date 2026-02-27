@@ -241,15 +241,25 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
                             payload?.error ||
                             header.message ||
                             `Task failed with status: ${header.status || 'unknown'}`;
-                        // const error = new Error(errorMsg);
-                        setError(errorMsg);
-                        // onError?.(error);
-                        // console.error('TaskFailed:', {
-                        //     status: header.status,
-                        //     status_text: header.status_text,
-                        //     message: header.message,
-                        //     payload,
-                        // });
+
+                        const isIdleTimeout =
+                            typeof errorMsg === 'string' &&
+                            errorMsg.toUpperCase().includes('IDLE_TIMEOUT');
+
+                        if (isIdleTimeout) {
+                            // 网关空闲超时：说明长时间未说话或未发送音频，阿里云主动断开任务
+                            console.warn('Aliyun ASR idle timeout, closing WebSocket and resetting state');
+                            // 这里不把它当成“错误”展示给用户，只是重置连接，下一次开始录音会自动重连
+                            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                wsRef.current.close();
+                            }
+                            // 其余清理逻辑在 onclose 中统一处理
+                        } else {
+                            // 非空闲超时的错误，才透出给外层
+                            setError(errorMsg);
+                            onError?.(new Error(errorMsg));
+                        }
+
                     } else if (header.name === 'SentenceBegin') {
                         // 句子开始，清除空闲定时器
                         if (idleTimeoutRef.current) {
@@ -469,8 +479,13 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
             audioContextRef.current = null;
         }
 
-        // 发送停止命令
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        // 发送停止命令：只有在当前连接已发送过 StartTranscription 且存在有效 task_id 时才发送
+        if (
+            wsRef.current &&
+            wsRef.current.readyState === WebSocket.OPEN &&
+            isStartSentRef.current &&
+            taskIdRef.current
+        ) {
             const stopParams = {
                 header: {
                     appkey: tokenRef.current?.appKey,
