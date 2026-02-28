@@ -29,6 +29,8 @@ export interface UtteranceRecord {
     userAudioDuration: number; // 秒
     userSentAt: string; // ISO
     aiRespondedAt: string; // ISO
+    /** 用户本句录音的可播放地址，如 data:audio/webm;base64,... 便于回放 */
+    user_audio_url?: string;
 }
 
 export interface ConversationSessionState {

@@ -146,7 +146,7 @@ export function useAliyunAsrConversation(
 
         try {
             setStatus('processing');
-            await stopRecording();
+            const recordingBlob = await stopRecording();
 
             const now = new Date();
             const userSentAt = now.toISOString();
@@ -165,6 +165,20 @@ export function useAliyunAsrConversation(
             const aiText = llmRes.aiText || '';
             const aiRespondedAt = new Date().toISOString();
 
+            let user_audio_url: string | undefined;
+            if (recordingBlob && recordingBlob.size > 0) {
+                try {
+                    user_audio_url = await new Promise<string>((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result as string);
+                        reader.onerror = () => reject(reader.error);
+                        reader.readAsDataURL(recordingBlob);
+                    });
+                } catch (_) {
+                    // 忽略转换失败，该条记录无录音回放
+                }
+            }
+
             const utterance: UtteranceRecord = {
                 id: `utt-${Date.now()}`,
                 userText,
@@ -172,6 +186,7 @@ export function useAliyunAsrConversation(
                 userAudioDuration: audioDuration,
                 userSentAt,
                 aiRespondedAt,
+                user_audio_url,
             };
 
             setSession((prev) => ({

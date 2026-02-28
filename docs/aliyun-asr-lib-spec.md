@@ -107,7 +107,8 @@ export interface UtteranceRecord {
   userAudioDuration: number;    // 秒
   userSentAt: string;           // ISO
   aiRespondedAt: string;        // ISO
-  // 如需要可扩展：userAudioUrl / aiAudioUrl 等
+  /** 用户本句录音的可播放地址，便于回放。当前实现为 data URL（base64），后续可按项目改为上传后存 URL */
+  user_audio_url?: string;
 }
 
 export interface ConversationSessionState {
@@ -205,7 +206,7 @@ interface AudioRecorder {
 }
 ```
 
-ASR 模式下，录音不会存文件，只是持续把 PCM 帧传给 `AsrClient` 的 `sendAudioFrame()`。
+ASR 模式下，除持续把 PCM 帧传给 `AsrClient` 的 `sendAudioFrame()` 外，会**同时用 MediaRecorder 录制一份可播放音频**；在 `stop()` 时返回该段录音的 Blob，供上层转为 data URL 写入 `UtteranceRecord.user_audio_url`，便于会话记录回放。
 
 ### 4.4 `ConversationManager`
 
@@ -225,7 +226,14 @@ class ConversationManager {
 }
 ```
 
----
+### 4.5 用户录音保存与回放
+
+每轮用户说话（从开始录音到点击「发送」）的音频会保存到对应 `UtteranceRecord` 中，便于在查看对话记录时回放。
+
+- **录制方式**：在发送 PCM 到 ASR 的同一路麦克风流上，使用 `MediaRecorder` 再录一份（如 `audio/webm;codecs=opus`）。`stopRecording()` 停止时先停止 MediaRecorder、收集片段生成 Blob 并返回，再停止轨与 WebSocket 等。
+- **存储格式**：**当前仅采用 data URL**（`FileReader.readAsDataURL(blob)`），即 base64 内嵌的 `data:audio/webm;base64,...`，写入 `UtteranceRecord.user_audio_url`。前端可直接用于 `<audio src={user_audio_url}>` 或 `new Audio(user_audio_url).play()`，无需额外请求。
+- **后续扩展**：若项目需要持久化到服务端或担心体积，可改为「上传 Blob 到存储（如 Supabase Storage）→ 只存文件 URL 到 `user_audio_url`」。库层面保持 `user_audio_url` 为可选字符串即可，由具体项目实施时决定是 data URL 还是远程 URL。
+
 
 ## 五、LLM 与 TTS 集成抽象
 
@@ -397,10 +405,11 @@ export function createAliyunAsrConversation(
    - 监听 `onPartialResult` / `onFinalSentence` 更新 `transcriptLive` 状态。
 
 2. `sendCurrentUtterance`：
-   - 停止录音，停止向 ASR 发送音频，但**不立即关闭 WS**（可配）。
+   - 停止录音；`stopRecording()` 返回本段录制的 Blob（MediaRecorder 产出）。
+   - 将 Blob 转为 data URL（`FileReader.readAsDataURL`），写入 `UtteranceRecord.user_audio_url`；若转换失败或无 Blob 则该项留空。
    - 从 `AsrClient` 获取当前完整文本（已结束句子 + interim，一般由 `transcriptLive` 提供）。
    - 调用 `llm.handler` 获取 `aiText` & `conversationId`。
-   - 构造 `UtteranceRecord`，写入 `ConversationManager`。
+   - 构造 `UtteranceRecord`（含 `user_audio_url`），写入 `ConversationManager`。
    - 调用 `tts.handler` + `tts.player` 播放。
    - 播放结束后，如果仍希望继续多轮对话，则再次启动录音 + ASR（回到 listening/recording 状态）。
 
@@ -542,13 +551,15 @@ const {
 
 ## 九、后续扩展点与注意事项
 
-1. **错误码归一化**：
+1. **用户录音保存（已实现）**：
+   - 每轮对话的用户录音通过 MediaRecorder 录制，在 `sendCurrentUtterance` 时由 `stopRecording()` 返回 Blob，转为 data URL 存入 `UtteranceRecord.user_audio_url`，便于记录回放。当前仅使用 data URL；后续可按项目改为上传存储并只存 URL。
+2. **错误码归一化**：
    - 将阿里云返回的错误码（如 token 过期、权限错误、限流）映射为 `AsrError.code`，便于上层统一处理。
-2. **静音检测 / 超时断开**：
+3. **静音检测 / 超时断开**：
    - 现有 `useAliyunASR` 中已有 idleTimeout 逻辑，可以继续下沉到 `AsrClient` 或 `AliyunAsrConversation`。
-3. **多语言与多区域支持**：
+4. **多语言与多区域支持**：
    - `AsrConfig.language` / `AsrToken.region` 已为多语言、多区域使用预留空间。
-4. **可插拔 LLM / TTS**：
+5. **可插拔 LLM / TTS**：
    - 通过函数型依赖，未来可以轻松更换为 OpenAI / Claude / 其他 TTS。
 
 ---

@@ -4,7 +4,7 @@ import { useAliyunAsrConversation } from '@/lib/aliyun-asr';
 import { createDifyLlmHandler } from '@/lib/dify-llm';
 import { synthesizeTTS } from '@/lib/aliyun-tts';
 import type { TtsConfig, TtsHandler } from '@/lib/aliyun-asr';
-import { Mic, MicOff, MessageSquare, PlayCircle, Settings2, StopCircle, Wifi, WifiOff } from 'lucide-react';
+import { Mic, MicOff, MessageSquare, Play, PlayCircle, Settings2, StopCircle, Wifi, WifiOff } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 const defaultTtsHandler: TtsHandler = async (text: string, config?: TtsConfig): Promise<string> => {
@@ -300,8 +300,21 @@ export default function AliyunAsrLlmTestPage() {
                                         )}
                                     </div>
                                     <div className="mt-1 text-sm">
-                                        <div className="mb-1">
-                                            <span className="font-semibold text-gray-800">用户：</span>
+                                        <div className="mb-1 flex items-start gap-2">
+                                            <span className="font-semibold text-gray-800 shrink-0">用户：</span>
+                                            {utt.user_audio_url ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const a = new Audio(utt.user_audio_url!);
+                                                        a.play().catch(() => {});
+                                                    }}
+                                                    className="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full bg-teal-100 text-teal-600 hover:bg-teal-200"
+                                                    title="播放用户录音"
+                                                >
+                                                    <Play className="w-3 h-3" />
+                                                </button>
+                                            ) : null}
                                             <span className="text-gray-800">{utt.userText}</span>
                                         </div>
                                         <div>

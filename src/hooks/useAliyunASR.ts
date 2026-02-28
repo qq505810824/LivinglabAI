@@ -94,6 +94,8 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
     const taskIdRef = useRef<string | null>(null);
     const stopTimeoutRef = useRef<NodeJS.Timeout | null>(null); // StopTranscription 超时关闭连接
     const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null); // 长时间未说话的空闲超时
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const recordedChunksRef = useRef<Blob[]>([]);
     // 保证 WebSocket 回调中始终调用最新的 setState，避免闭包陈旧导致界面不更新
     const setAccumulatedRef = useRef(setAccumulatedTranscript);
     const setInterimRef = useRef(setInterimTranscript);
@@ -388,6 +390,18 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
 
             mediaStreamRef.current = stream;
 
+            // 同时用 MediaRecorder 录制一份可播放的音频，供会话记录回放
+            recordedChunksRef.current = [];
+            try {
+                const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+                const mr = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 128000 });
+                mr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
+                mr.start(200);
+                mediaRecorderRef.current = mr;
+            } catch (_) {
+                mediaRecorderRef.current = null;
+            }
+
             // 创建 AudioContext
             const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
                 sampleRate: sampleRate,
@@ -452,62 +466,71 @@ export const useAliyunASR = (options: UseAliyunASROptions = {}) => {
         }
     }, [isConnected, connect, sampleRate, onError, clearTranscript]);
 
-    // 停止录音
-    const stopRecording = useCallback(() => {
-        setIsRecording(false);
+    // 停止录音，返回本段录制的音频 Blob（用于保存到会话记录）
+    const stopRecording = useCallback((): Promise<Blob | null> => {
+        const finish = (blob: Blob | null) => {
+            setIsRecording(false);
+            if (idleTimeoutRef.current) {
+                clearTimeout(idleTimeoutRef.current);
+                idleTimeoutRef.current = null;
+            }
+            if (mediaStreamRef.current) {
+                mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+                mediaStreamRef.current = null;
+            }
+            if (processorRef.current) {
+                processorRef.current.disconnect();
+                processorRef.current = null;
+            }
+            if (audioContextRef.current) {
+                audioContextRef.current.close();
+                audioContextRef.current = null;
+            }
+            if (
+                wsRef.current &&
+                wsRef.current.readyState === WebSocket.OPEN &&
+                isStartSentRef.current &&
+                taskIdRef.current
+            ) {
+                const stopParams = {
+                    header: {
+                        appkey: tokenRef.current?.appKey,
+                        message_id: generateMessageId(),
+                        task_id: taskIdRef.current,
+                        namespace: 'SpeechTranscriber',
+                        name: 'StopTranscription',
+                        status: 3,
+                    },
+                };
+                wsRef.current.send(JSON.stringify(stopParams));
+                stopTimeoutRef.current = setTimeout(() => {
+                    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                        wsRef.current.close();
+                    }
+                    stopTimeoutRef.current = null;
+                }, 3000);
+            }
+        };
 
-        // 清除空闲定时器
-        if (idleTimeoutRef.current) {
-            clearTimeout(idleTimeoutRef.current);
-            idleTimeoutRef.current = null;
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+            const mr = mediaRecorderRef.current;
+            mediaRecorderRef.current = null;
+            return new Promise<Blob | null>((resolve) => {
+                mr.onstop = () => {
+                    const blob =
+                        recordedChunksRef.current.length > 0
+                            ? new Blob(recordedChunksRef.current, { type: mr.mimeType || 'audio/webm' })
+                            : null;
+                    recordedChunksRef.current = [];
+                    finish(blob);
+                    resolve(blob);
+                };
+                mr.stop();
+            });
         }
-
-        // 停止音频流
-        if (mediaStreamRef.current) {
-            mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-            mediaStreamRef.current = null;
-        }
-
-        // 断开音频处理
-        if (processorRef.current) {
-            processorRef.current.disconnect();
-            processorRef.current = null;
-        }
-
-        if (audioContextRef.current) {
-            audioContextRef.current.close();
-            audioContextRef.current = null;
-        }
-
-        // 发送停止命令：只有在当前连接已发送过 StartTranscription 且存在有效 task_id 时才发送
-        if (
-            wsRef.current &&
-            wsRef.current.readyState === WebSocket.OPEN &&
-            isStartSentRef.current &&
-            taskIdRef.current
-        ) {
-            const stopParams = {
-                header: {
-                    appkey: tokenRef.current?.appKey,
-                    message_id: generateMessageId(), // 使用 32 位十六进制字符串
-                    task_id: taskIdRef.current, // 使用 32 位十六进制字符串
-                    namespace: 'SpeechTranscriber',
-                    name: 'StopTranscription',
-                    status: 3, // 3 表示请求
-                },
-            };
-            // console.log('Sending StopTranscription:', JSON.stringify(stopParams, null, 2));
-            wsRef.current.send(JSON.stringify(stopParams));
-
-            // 设置超时：如果 3 秒内没有收到 StopTranscription 响应，强制关闭连接
-            stopTimeoutRef.current = setTimeout(() => {
-                console.warn('StopTranscription response timeout, closing WebSocket');
-                if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                    wsRef.current.close();
-                }
-                stopTimeoutRef.current = null;
-            }, 3000); // 10 秒超时
-        }
+        recordedChunksRef.current = [];
+        finish(null);
+        return Promise.resolve(null);
     }, []);
 
     // 断开连接
