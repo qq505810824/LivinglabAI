@@ -1,8 +1,8 @@
 import { Menu, Transition } from '@headlessui/react';
 import {
-    ArrowRightOnRectangleIcon,
-    Cog6ToothIcon
+    ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
+import { UserCircleIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Fragment } from 'react';
 
@@ -12,13 +12,10 @@ function MenuButton(props: any) {
         <Menu as="div" className="relative">
             <div className="flex items-center">
                 <Menu.Button className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75">
-                    <div className="w-10 h-10 bg-gray-900 rounded-full overflow-hidden border-2 border-gray-200 flex items-center justify-center text-white text-sm font-medium shadow-sm">
-                        {(props?.name?.[0] ?? '?').toUpperCase()}
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">
+                        {props?.name?.[0] ?? '?'.toUpperCase()}
                     </div>
-                    {/* <UserCircleIcon
-                        className="h-10 w-10 text-gray-500 hover:text-gray-700"
-                        aria-hidden="true"
-                    /> */}
+
                 </Menu.Button>
             </div>
             <Transition
@@ -33,13 +30,17 @@ function MenuButton(props: any) {
                 <Menu.Items className="absolute right-0 mt-1 min-w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-gray-200 ring-opacity-5 focus:outline-none flex flex-col gap-1 py-1">
                     <div className="px-1">
                         <Menu.Item>
-                            <div className="flex w-full items-center justify-center rounded-md px-2 py-2 text-sm text-gray-400">
-                                {props?.email || 'Loading...'}
+
+                            <div className="flex w-full items-center rounded-md gap-2 px-2 py-2 text-md text-gray-400">
+                                <UserCircleIcon
+                                    className="h-6 w-6 text-gray-500 hover:text-gray-700"
+                                    aria-hidden="true"
+                                />{props?.email || 'Loading...'}
                             </div>
                         </Menu.Item>
                     </div>
                     <div className="px-1">
-                        <Menu.Item>
+                        {/* <Menu.Item>
                             {({ active }) => (
                                 <button
                                     className={`${active ? 'bg-violet-100 text-violet-800' : 'text-gray-900'
@@ -52,7 +53,7 @@ function MenuButton(props: any) {
                                     我的待办事项
                                 </button>
                             )}
-                        </Menu.Item>
+                        </Menu.Item> */}
                     </div>
                     <div className="px-1">
                         <Menu.Item>

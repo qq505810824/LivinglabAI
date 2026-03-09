@@ -4,11 +4,9 @@
 -- Generated: 2026-03-09
 -- ====================================
 
--- Enable necessary extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ====================================
--- ENUM TYPES
+-- TABLES
 -- ====================================
 
 CREATE TYPE case_category_enum AS ENUM ('solved', 'open', 'process', 'policy', 'content');
@@ -18,29 +16,6 @@ CREATE TYPE team_type_enum AS ENUM ('solo', 'pair', 'team');
 CREATE TYPE project_status_enum AS ENUM ('not_started', 'in_progress', 'submitted', 'completed');
 CREATE TYPE opportunity_type_enum AS ENUM ('internship', 'program');
 CREATE TYPE application_status_enum AS ENUM ('pending', 'under_review', 'accepted', 'rejected');
-
--- ====================================
--- TABLES
--- ====================================
-
--- Users table
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  full_name VARCHAR(255),
-  avatar_url TEXT,
-  role user_role_enum DEFAULT 'student',
-  university VARCHAR(255),
-  major VARCHAR(255),
-  bio TEXT,
-  skills TEXT[] DEFAULT '{}',
-  portfolio_url TEXT,
-  linkedin_url TEXT,
-  github_url TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
 
 -- Cases table
 CREATE TABLE cases (
@@ -129,7 +104,7 @@ CREATE TABLE programs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title VARCHAR(255) NOT NULL,
   organization VARCHAR(255) NOT NULL,
-  org_type VARCHAR(50) CHECK (org_type IN ('university', 'company', 'institution')),
+  org_type VARCHAR(50) NOT NULL,
   duration VARCHAR(100) NOT NULL,
   dates VARCHAR(255) NOT NULL,
   deadline DATE NOT NULL,
@@ -196,53 +171,3 @@ CREATE INDEX idx_program_applications_program ON program_applications(program_id
 CREATE INDEX idx_program_applications_user ON program_applications(user_id);
 CREATE INDEX idx_program_applications_status ON program_applications(status);
 
--- ====================================
--- TRIGGERS
--- ====================================
-
--- Auto-update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER update_users_updated_at
-  BEFORE UPDATE ON users
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_cases_updated_at
-  BEFORE UPDATE ON cases
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_projects_updated_at
-  BEFORE UPDATE ON projects
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_opportunities_updated_at
-  BEFORE UPDATE ON opportunities
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_programs_updated_at
-  BEFORE UPDATE ON programs
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
--- ====================================
--- ROW LEVEL SECURITY (RLS)
--- ====================================
-
--- Enable RLS
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE cases ENABLE ROW LEVEL SECURITY;
-ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE opportunities ENABLE ROW LEVEL SECURITY;
-ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE programs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE program_applications ENABLE ROW LEVEL SECURITY;

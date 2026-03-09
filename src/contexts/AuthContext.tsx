@@ -7,8 +7,8 @@ import { createContext, ReactNode, useContext, useEffect, useState } from 'react
 
 interface AuthContextType {
     user: User | null
-    login: (email: string, password: string) => Promise<void>
-    register: (username: string, email: string, password: string) => Promise<void>
+    signIn: (email: string, password: string) => Promise<void>
+    signUp: (username: string, email: string, password: string) => Promise<void>
     logout: () => void
     isLoading: boolean
 }
@@ -42,16 +42,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
 
                 setUser(mappedUser)
-            } else {
-                const mappedUser: User = {
-                    "id": "9b286ae2-a8d2-4aec-adf7-caa992743c7c",
-                    "username": "cong",
-                    "email": "505810824@qq.com",
-                    "avatar": "",
-                    "token": "eyJhbGciOiJFUzI1NiIsImtpZCI6IjQxYzE1MzI5LTY4YmQtNGI3Mi05MWQyLTVkYmQ0MjgzN2M2YSIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL3p4dWJtcXRrbGdyenFqZ2JqeWppLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI5YjI4NmFlMi1hOGQyLTRhZWMtYWRmNy1jYWE5OTI3NDNjN2MiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzcxMDA2NjI0LCJpYXQiOjE3NzEwMDMwMjQsImVtYWlsIjoiNTA1ODEwODI0QHFxLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiI1MDU4MTA4MjRAcXEuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiOWIyODZhZTItYThkMi00YWVjLWFkZjctY2FhOTkyNzQzYzdjIiwidXNlcm5hbWUiOiJjb25nIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NzA2MjYxODR9XSwic2Vzc2lvbl9pZCI6IjAwN2U1MmQ4LWQ3ZjktNDZjNy1hNGVmLTA0MmE4YTc0NjM1NiIsImlzX2Fub255bW91cyI6ZmFsc2V9.ABqvCdhVvrwcjWD5ab6A_kanD4v7prtHCY84t4lIp9ZxqU3PzOCDxBfezUiM3nVIQB7qQo9Q1G6442a233sEVA"
-
-                }
-                setUser(mappedUser)
             }
             setIsLoading(false)
         }
@@ -78,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }
 
-    const login = async (email: string, password: string) => {
+    const signIn = async (email: string, password: string) => {
         setIsLoading(true)
         try {
             const { data, error } = await supabase.auth.signInWithPassword({
@@ -112,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }
 
-    const register = async (username: string, email: string, password: string) => {
+    const signUp = async (username: string, email: string, password: string) => {
         setIsLoading(true)
         try {
             const { data, error } = await supabase.auth.signUp({
@@ -159,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+        <AuthContext.Provider value={{ user, signIn, signUp, logout, isLoading }}>
             {children}
         </AuthContext.Provider>
     )
