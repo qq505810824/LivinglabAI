@@ -1,45 +1,67 @@
 @import "tailwindcss";
 
 @theme {
-  --color-tea-50: #f4f9f4;
-  --color-tea-100: #e3f0e3;
-  --color-tea-200: #c5e0c5;
-  --color-tea-300: #98c698;
-  --color-tea-400: #64a664;
-  --color-tea-500: #3d8b5e;
-  --color-tea-600: #2d6e49;
-  --color-tea-700: #26583b;
-  --color-tea-800: #214631;
-  --color-tea-900: #1c3a29;
-  --color-tea-950: #0e1f15;
+  /* 原网页颜色系统 - CaseVault 主题 */
+  --color-background-primary: #0f172a;
+  /* 主背景 - 深蓝灰 */
+  --color-background-secondary: #1e293b;
+  /* 次要背景/卡片 */
+  --color-background-tertiary: #334155;
+  /* 第三背景 */
 
-  --color-earth-50: #fafaf9;
-  --color-earth-100: #f5f5f4;
-  --color-earth-200: #e7e5e4;
-  --color-earth-300: #d6d3d1;
-  --color-earth-400: #a8a29e;
-  --color-earth-500: #78716c;
-  --color-earth-600: #57534e;
-  --color-earth-700: #44403c;
-  --color-earth-800: #292524;
-  --color-earth-900: #1c1917;
-  --color-earth-950: #0c0a09;
+  --color-primary: #818cf8;
+  /* 亮靛蓝 */
+  --color-primary-hover: #6366f1;
+  /* 深靛蓝 */
+  --color-primary-light: rgba(129, 140, 248, 0.1);
+
+  --color-success: #34d399;
+  /* 成功 - 翠绿 */
+  --color-success-bg: rgba(52, 211, 153, 0.15);
+  --color-warning: #fbbf24;
+  /* 警告 - 琥珀 */
+  --color-warning-bg: rgba(251, 191, 36, 0.15);
+  --color-danger: #f87171;
+  /* 危险 - 珊瑚红 */
+  --color-danger-bg: rgba(248, 113, 113, 0.15);
+  --color-info: #60a5fa;
+  /* 信息 - 天蓝 */
+  --color-info-bg: rgba(96, 165, 250, 0.15);
+  --color-pink: #f472b6;
+  /* 粉色 */
+  --color-pink-bg: rgba(244, 114, 182, 0.15);
+
+  --color-text-primary: #f1f5f9;
+  /* 主文字 - 浅灰白 */
+  --color-text-secondary: #94a3b8;
+  /* 次要文字 - 中灰 */
+  --color-text-tertiary: #64748b;
+  /* 提示文字 - 深灰 */
+
+  --color-border: rgba(71, 85, 105, 0.3);
+  /* 默认边框 */
+  --color-border-hover: rgba(129, 140, 248, 0.3);
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0f172a;
+  --foreground: #f1f5f9;
 }
-
-/* @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-} */
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* 链接样式 */
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+a:hover {
+  opacity: 0.8;
 }

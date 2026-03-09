@@ -1,70 +1,96 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { useAuth } from '@/hooks/useAuth'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { useAuth } from '@/hooks/useAuth';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 
 export default function LoginPage() {
-  const { login } = useAuth()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const { signIn } = useAuth();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
 
     try {
-      await login(email, password)
+      await signIn(formData.email, formData.password);
+      router.push('/cases');
     } catch (err) {
-      setError(err instanceof Error ? err.message : '登录失败')
+      setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {
-      setLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <Card title="欢迎回来" className="w-full border-tea-200 shadow-xl shadow-tea-200/20">
-        <p className="text-sm text-earth-500 mb-6 -mt-2">请登录您的账号以继续</p>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Input
-            label="邮箱"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            placeholder="请输入邮箱"
-          />
-          <Input
-            label="密码"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            placeholder="请输入密码"
-          />
-          {error && <div className="text-sm text-red-500">{error}</div>}
-          <Button
-            type="submit"
-            className="w-full bg-tea-600 hover:bg-tea-700"
-            disabled={loading}
-          >
-            {loading ? '登录中...' : '登录'}
-          </Button>
-          <div className="text-center text-sm text-earth-500">
-            还没有账号？{' '}
-            <Link href="/register" className="text-tea-600 font-medium hover:text-tea-700 hover:underline transition-colors">
-              立即注册
-            </Link>
+    <div className="w-full">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-text-primary mb-2">Welcome Back</h1>
+        <p className="text-text-secondary">Sign in to access your CaseVault dashboard</p>
+      </div>
+
+      {/* Login Form */}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Input
+          label="Email"
+          type="email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          placeholder="your@email.com"
+          required
+        />
+
+        <Input
+          label="Password"
+          type="password"
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          placeholder="••••••••"
+          required
+        />
+
+        {error && (
+          <div className="p-3 bg-danger/10 border border-danger rounded-lg text-danger text-sm">
+            {error}
           </div>
-        </form>
-      </Card>
+        )}
+
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          isLoading={isLoading}
+          className="w-full"
+        >
+          Sign In
+        </Button>
+      </form>
+
+      {/* Divider */}
+      <div className="my-6 flex items-center gap-3">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-text-tertiary text-sm">or</span>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+
+      {/* Register Link */}
+      <p className="text-center text-text-secondary">
+        Do not have an account?{' '}
+        <Link href="/register" className="text-primary hover:text-primary-hover font-medium underline">
+          Create one
+        </Link>
+      </p>
     </div>
-  )
+  );
 }

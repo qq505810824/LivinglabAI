@@ -1,63 +1,80 @@
-import Link from 'next/link'
+'use client';
 
-export function Footer() {
-    return (
-        <footer className="border-t border-tea-100 bg-tea-50/50">
-            <div className="container mx-auto px-4 py-12 md:py-16">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-                    {/* Brand Column */}
-                    <div className="space-y-4">
-                        <Link href="/" className="flex flex-row items-center gap-2 text-xl font-bold text-tea-700 hover:text-tea-600 transition-colors">
-                            <img src="/icon.png" className="h-6 w-6" /><span className="tracking-wide">LivinglabAI</span>
-                        </Link>
-                        <p className="text-sm text-earth-600 leading-relaxed max-w-xs">
-                            LivinglabAI is a platform that helps you find the right talent for your project.
-                        </p>
-                    </div>
+import Link from 'next/link';
+import React from 'react';
 
-                    {/* Links Column 1 */}
-                    <div>
-                        <h3 className="font-bold text-tea-800 mb-4 md:mb-6">探索</h3>
-                        <ul className="space-y-3 text-sm text-earth-600">
+export const Footer: React.FC = () => {
+  return (
+    <footer className="bg-background-secondary border-t border-border py-8">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Brand */}
+          <div className="col-span-1">
+            <h3 className="text-lg font-bold text-primary mb-3">📦 CaseVault</h3>
+            <p className="text-text-secondary text-sm">
+              Empowering students to solve real-world problems with AI.
+            </p>
+          </div>
 
-                        </ul>
-                    </div>
+          {/* Quick Links */}
+          <div>
+            <h4 className="font-semibold text-text-primary mb-3">Quick Links</h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link href="/cases" className="text-text-secondary hover:text-primary transition-colors">
+                  Problem Bank
+                </Link>
+              </li>
+              <li>
+                <Link href="/internships" className="text-text-secondary hover:text-primary transition-colors">
+                  Internships
+                </Link>
+              </li>
+              <li>
+                <Link href="/programs" className="text-text-secondary hover:text-primary transition-colors">
+                  Summer Programs
+                </Link>
+              </li>
+            </ul>
+          </div>
 
-                    {/* Links Column 2 */}
-                    <div>
-                        <h3 className="font-bold text-tea-800 mb-4 md:mb-6">关于</h3>
-                        <ul className="space-y-3 text-sm text-earth-600">
-                            {/* <li><FooterLink href="/contact">联系方式</FooterLink></li>
-                            <li><FooterLink href="/privacy">隐私政策</FooterLink></li>
-                            <li><FooterLink href="/terms">服务条款</FooterLink></li> */}
-                        </ul>
-                    </div>
-                </div>
+          {/* Support */}
+          <div>
+            <h4 className="font-semibold text-text-primary mb-3">Support</h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link href="/about" className="text-text-secondary hover:text-primary transition-colors">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-text-secondary hover:text-primary transition-colors">
+                  Contact
+                </Link>
+              </li>
+              <li>
+                <Link href="/privacy" className="text-text-secondary hover:text-primary transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
+            </ul>
+          </div>
 
-                <div className="mt-12 pt-8 border-t border-tea-200/60 text-center text-sm text-earth-500">
-                    <p>© {new Date().getFullYear()} LivinglabAI. All rights reserved.</p>
-                </div>
-            </div>
-        </footer>
-    )
-}
+          {/* Social */}
+          <div>
+            <h4 className="font-semibold text-text-primary mb-3">Connect</h4>
+            <ul className="space-y-2 text-sm">
+              <li className="text-text-secondary">Twitter</li>
+              <li className="text-text-secondary">LinkedIn</li>
+              <li className="text-text-secondary">GitHub</li>
+            </ul>
+          </div>
+        </div>
 
-function FooterLink({ href, children }: { href: string, children: React.ReactNode }) {
-    return (
-        <Link href={href} className="hover:text-tea-600 hover:translate-x-1 transition-all inline-block">
-            {children}
-        </Link>
-    )
-}
-
-function SocialLink({ href, icon, label }: { href: string, icon: React.ReactNode, label: string }) {
-    return (
-        <a
-            href={href}
-            className="text-earth-400 hover:text-tea-600 transition-colors p-1 hover:bg-tea-100 rounded-full"
-            aria-label={label}
-        >
-            {icon}
-        </a>
-    )
-}
+        <div className="mt-8 pt-8 border-t border-border text-center text-text-tertiary text-sm">
+          <p>&copy; {new Date().getFullYear()} CaseVault. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+  );
+};

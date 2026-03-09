@@ -1,74 +1,119 @@
-'use client'
+'use client';
 
-import { useAuth } from '@/hooks/useAuth'
-import { Bell } from 'lucide-react'
-import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
-import MenuButton from './MenuButton'
+import { cn } from '@/lib/utils';
+import { Menu, X } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import React, { useState } from 'react';
 
-export function Header() {
-    const [isMenuOpen, setIsMenuOpen] = useState(false)
-    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-    const userMenuRef = useRef<HTMLDivElement>(null)
-    const pathname = usePathname()
-    const { user, logout } = useAuth()
-    const router = useRouter()
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-                setIsUserMenuOpen(false)
-            }
-        }
-
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside)
-        }
-    }, [])
-
-    const toggleMenu = () => {
-        setIsMenuOpen(!isMenuOpen)
-    }
-
-    const navLinks = [
-        { href: '/', label: 'Home' },
-        { href: '/about', label: 'About' },
-        { href: '/contact', label: 'Contact' },
-        { href: '/privacy', label: 'Privacy' },
-        { href: '/terms', label: 'Terms' },
-    ]
-
-    const isLinkActive = (href: string) => {
-        if (href === '/') {
-            return pathname === href
-        }
-        return pathname.startsWith(href)
-    }
-
-    return (
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-            <div className="max-w-[1600px] mx-auto px-8 h-20 flex items-center justify-between">
-                <div className="flex items-center gap-3 cursor-pointer" onClick={() => router.push('/')}>
-                    <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold shadow-indigo-200 shadow-lg text-xl">
-                        AI
-                    </div>
-                    <span className="font-bold text-xl tracking-tight text-gray-900">LivinglabAI</span>
-                </div>
-                <div className="flex items-center gap-6">
-                    <button className="p-3 text-gray-500 hover:bg-gray-100 rounded-full relative transition-colors">
-                        <Bell size={22} />
-                        <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-                    </button>
-                    <div className="flex items-center gap-3 pl-6 border-l border-gray-200">
-                        <div className="text-right hidden md:block">
-                            <p className="text-md font-semibold text-gray-900">{user?.username}</p>
-                            <p className="text-xs text-gray-500">{user?.email}</p>
-                        </div>
-                        <MenuButton name={user?.username} email={user?.email} />
-                    </div>
-                </div>
-            </div>
-        </header>
-
-    )
+interface HeaderProps {
+  variant?: 'student' | 'organization';
 }
+
+export const Header: React.FC<HeaderProps> = ({ variant = 'student' }) => {
+  const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const studentLinks = [
+    { href: '/cases', label: '🔍 Problem Bank' },
+    { href: '/internships', label: '💼 Internships' },
+    { href: '/programs', label: '🎓 Summer Programs' },
+    { href: '/projects', label: '📂 My Projects' },
+  ];
+
+  const orgLinks = [
+    { href: '/dashboard', label: '📊 Dashboard' },
+    { href: '/dashboard/cases', label: '📝 Cases' },
+    { href: '/dashboard/opportunities', label: '📌 Opportunities' },
+    { href: '/dashboard/submissions', label: '👀 Student Work' },
+  ];
+
+  const links = variant === 'student' ? studentLinks : orgLinks;
+
+  return (
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background-primary/90 backdrop-blur-md border-b border-border h-[56px]">
+      <div className="h-full px-4 md:px-6 flex items-center justify-between">
+        {/* Logo */}
+        <Link
+          href={variant === 'student' ? '/cases' : '/dashboard'}
+          className="text-xl font-bold text-primary hover:opacity-80 transition-opacity"
+        >
+          📦 CaseVault
+        </Link>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-1 overflow-x-auto">
+          {links.map((link) => {
+            const isActive = pathname === link.href || pathname?.startsWith(link.href + '/');
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
+                  isActive
+                    ? 'bg-primary-light text-primary'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-background-secondary'
+                )}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Right Side */}
+        <div className="flex items-center gap-3">
+          {/* User Menu */}
+          <div className="hidden md:flex items-center gap-2">
+            <button className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-primary transition-colors">
+              Sign Out
+            </button>
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">
+              U
+            </div>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden p-2 text-text-secondary hover:text-primary"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden border-t border-border bg-background-primary">
+          <nav className="flex flex-col p-4 space-y-2">
+            {links.map((link) => {
+              const isActive = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    'px-4 py-3 rounded-lg text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-primary-light text-primary'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-background-secondary'
+                  )}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+            <div className="pt-2 border-t border-border mt-2">
+              <button className="w-full px-4 py-3 text-left text-sm font-medium text-text-secondary hover:text-primary">
+                Sign Out
+              </button>
+            </div>
+          </nav>
+        </div>
+      )}
+    </header>
+  );
+};

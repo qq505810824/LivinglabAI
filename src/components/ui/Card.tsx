@@ -1,17 +1,31 @@
-import { ReactNode } from 'react'
-import { cn } from '@/lib/utils'
+'use client';
 
-interface CardProps {
-  title?: string
-  children: ReactNode
-  className?: string
+import { cn } from '@/lib/utils';
+import React from 'react';
+
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: 'default' | 'hoverable';
+  onClick?: () => void;
 }
 
-export function Card({ title, children, className }: CardProps) {
+export const Card: React.FC<CardProps> = ({
+  className,
+  variant = 'default',
+  onClick,
+  children,
+  ...props
+}) => {
   return (
-    <div className={cn("rounded-lg border bg-card p-6 shadow-sm", className)}>
-      {title && <h2 className="mb-4 text-2xl font-semibold text-tea-700">{title}</h2>}
+    <div
+      className={cn(
+        'bg-background-secondary border border-border rounded-xl p-5 transition-all duration-200',
+        variant === 'hoverable' && 'cursor-pointer hover:border-primary-hover hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1',
+        className
+      )}
+      onClick={onClick}
+      {...props}
+    >
       {children}
     </div>
-  )
-}
+  );
+};

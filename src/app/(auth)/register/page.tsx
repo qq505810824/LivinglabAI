@@ -1,79 +1,159 @@
-'use client'
+'use client';
 
-import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
-import { Input } from '@/components/ui/Input'
-import { useAuth } from '@/hooks/useAuth'
-import Link from 'next/link'
-import { useState } from 'react'
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { useAuth } from '@/hooks/useAuth';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 
 export default function RegisterPage() {
-    const { register } = useAuth()
-    const [username, setUsername] = useState('')
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [error, setError] = useState('')
-    const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const { signUp } = useAuth();
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: 'student' as 'student' | 'organization',
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setError('')
-        setLoading(true)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
 
-        try {
-            await register(username, email, password)
-        } catch (err) {
-            setError(err instanceof Error ? err.message : '注册失败')
-        } finally {
-            setLoading(false)
-        }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
     }
 
-    return (
-        <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <Card title="创建账号" className="w-full     shadow-xl shadow-sky-200/20">
-                <p className="text-sm text-earth-500 mb-6 -mt-2">注册LivinglabAI账号，开启您的职场之旅</p>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <Input
-                        label="用户名"
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        required
-                        placeholder="请输入用户名"
-                    />
-                    <Input
-                        label="邮箱"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        placeholder="请输入邮箱"
-                    />
-                    <Input
-                        label="密码"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        placeholder="请输入密码"
-                    />
-                    {error && <div className="text-sm text-red-500">{error}</div>}
-                    <Button
-                        type="submit"
-                        className="w-full bg-sky-500 hover:bg-sky-700"
-                        disabled={loading}
-                    >
-                        {loading ? '注册中...' : '注册'}
-                    </Button>
-                    <div className="text-center text-sm text-earth-500">
-                        已有账号？{' '}
-                        <Link href="/login" className="text-tea-600 font-medium hover:text-tea-700 hover:underline transition-colors">
-                            立即登录
-                        </Link>
-                    </div>
-                </form>
-            </Card>
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await signUp(formData.email, formData.password, formData.fullName, formData.role);
+      router.push('/cases');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Registration failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="w-full">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-text-primary mb-2">Create Account</h1>
+        <p className="text-text-secondary">Join CaseVault and start solving real-world problems</p>
+      </div>
+
+      {/* Register Form */}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Input
+          label="Full Name"
+          type="text"
+          value={formData.fullName}
+          onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+          placeholder="John Doe"
+          required
+        />
+
+        <Input
+          label="Email"
+          type="email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          placeholder="your@email.com"
+          required
+        />
+
+        <Input
+          label="Password"
+          type="password"
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          placeholder="••••••••"
+          required
+        />
+
+        <Input
+          label="Confirm Password"
+          type="password"
+          value={formData.confirmPassword}
+          onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+          placeholder="••••••••"
+          required
+        />
+
+        {/* Role Selection */}
+        <div>
+          <label className="block text-sm font-medium text-text-secondary mb-2">
+            I am a
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, role: 'student' })}
+              className={`p-4 rounded-lg border text-left transition-all ${formData.role === 'student'
+                  ? 'border-primary bg-primary-light text-primary'
+                  : 'border-border hover:border-primary-hover'
+                }`}
+            >
+              <div className="font-semibold">Student</div>
+              <div className="text-xs text-text-tertiary mt-1">Solve problems & build portfolio</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, role: 'organization' })}
+              className={`p-4 rounded-lg border text-left transition-all ${formData.role === 'organization'
+                  ? 'border-primary bg-primary-light text-primary'
+                  : 'border-border hover:border-primary-hover'
+                }`}
+            >
+              <div className="font-semibold">Organization</div>
+              <div className="text-xs text-text-tertiary mt-1">Post cases & review submissions</div>
+            </button>
+          </div>
         </div>
-    )
+
+        {error && (
+          <div className="p-3 bg-danger/10 border border-danger rounded-lg text-danger text-sm">
+            {error}
+          </div>
+        )}
+
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          isLoading={isLoading}
+          className="w-full"
+        >
+          Create Account
+        </Button>
+      </form>
+
+      {/* Divider */}
+      <div className="my-6 flex items-center gap-3">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-text-tertiary text-sm">or</span>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+
+      {/* Login Link */}
+      <p className="text-center text-text-secondary">
+        Already have an account?{' '}
+        <Link href="/login" className="text-primary hover:text-primary-hover font-medium underline">
+          Sign in
+        </Link>
+      </p>
+    </div>
+  );
 }
