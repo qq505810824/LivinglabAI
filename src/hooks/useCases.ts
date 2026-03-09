@@ -31,6 +31,10 @@ export function useCases() {
     };
 
     const getCaseById = async (caseId: string): Promise<Case | null> => {
+        if (!caseId || caseId === 'undefined') {
+            return null;
+        }
+
         try {
             const res = await fetch(`/api/cases/${caseId}`);
             if (!res.ok) {
@@ -77,6 +81,28 @@ export function useCases() {
         }
     };
 
+    const updateCase = async (caseId: string, updates: Partial<CreateCaseInput>) => {
+        try {
+            const res = await fetch(`/api/cases/${caseId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updates),
+            });
+
+            if (!res.ok) {
+                const json = (await res.json().catch(() => null)) as ApiResponse<null> | null;
+                throw new Error(json?.message || json?.error || 'Failed to update case');
+            }
+
+            await fetchCases();
+        } catch (err) {
+            console.error('Error updating case:', err);
+            throw err;
+        }
+    };
+
     const deleteCase = async (caseId: string) => {
         try {
             const res = await fetch(`/api/cases/${caseId}`, {
@@ -107,6 +133,7 @@ export function useCases() {
         refreshCases: fetchCases,
         getCaseById,
         createCase,
+        updateCase,
         deleteCase,
     };
 }

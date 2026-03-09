@@ -1,29 +1,39 @@
 import { supabaseAdmin } from '@/lib/supabase';
-import type { Case } from '@/types/case';
+import type { Case, CreateCaseInput } from '@/types/case';
 import type { ApiResponse } from '@/types/meeting';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteParams {
-    params: {
+    params: Promise<{
         id: string;
-    };
+    }>;
 }
 
 // GET /api/cases/[id] - get single case with organization info
-export async function GET(_request: Request, { params }: RouteParams) {
-    const { id } = params;
+export async function GET(_request: NextRequest, context: RouteParams) {
+    const { id } = await context.params;
+    if (!id || id === 'undefined') {
+        return NextResponse.json(
+            {
+                success: false,
+                error: 'Validation error',
+                message: 'Case id is required',
+            } satisfies ApiResponse<never>,
+            { status: 400 },
+        );
+    }
 
     try {
         const { data, error } = await supabaseAdmin
             .from('cases')
             .select(
                 `
-        *,
-        users (
-          name,
-          avatar_url
-        )
-      `,
+                    *,
+                    users (
+                    name,
+                    avatar_url
+                    )
+                `,
             )
             .eq('id', id)
             .single();
@@ -87,9 +97,67 @@ export async function GET(_request: Request, { params }: RouteParams) {
     }
 }
 
+// PATCH /api/cases/[id] - update a case
+export async function PATCH(request: NextRequest, context: RouteParams) {
+    const { id } = await context.params;
+
+    if (!id || id === 'undefined') {
+        return NextResponse.json(
+            {
+                success: false,
+                error: 'Validation error',
+                message: 'Case id is required',
+            } satisfies ApiResponse<never>,
+            { status: 400 },
+        );
+    }
+
+    try {
+        const updates = (await request.json()) as Partial<CreateCaseInput>;
+
+        const { error } = await supabaseAdmin
+            .from('cases')
+            .update({
+                title: updates.title,
+                department: updates.department,
+                category: updates.category,
+                difficulty: updates.difficulty,
+                scenario: updates.scenario,
+                problem: updates.problem,
+                existing_solution: updates.existing_solution,
+                deliverable: updates.deliverable,
+                public_data: updates.public_data,
+                estimated_hours: updates.estimated_hours,
+                skills: updates.skills,
+            })
+            .eq('id', id);
+
+        if (error) {
+            throw error;
+        }
+
+        const response: ApiResponse<null> = {
+            success: true,
+            data: null,
+        };
+
+        return NextResponse.json(response);
+    } catch (error) {
+        console.error(`Error in PATCH /api/cases/${id}:`, error);
+        return NextResponse.json(
+            {
+                success: false,
+                error: 'Internal server error',
+                message: error instanceof Error ? error.message : 'Unknown error',
+            } satisfies ApiResponse<never>,
+            { status: 500 },
+        );
+    }
+}
+
 // DELETE /api/cases/[id] - delete a case
-export async function DELETE(_request: Request, { params }: RouteParams) {
-    const { id } = params;
+export async function DELETE(_request: NextRequest, context: RouteParams) {
+    const { id } = await context.params;
 
     try {
         const { error } = await supabaseAdmin

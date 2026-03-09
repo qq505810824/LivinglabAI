@@ -4,14 +4,25 @@ import type { ApiResponse } from '@/types/meeting';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // GET /api/opportunities/[id]
-export async function GET(_request: NextRequest, { params }: RouteParams) {
-  const { id } = params;
+export async function GET(_request: NextRequest, context: RouteParams) {
+  const { id } = await context.params;
+
+  if (!id || id === 'undefined') {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Validation error',
+        message: 'Opportunity id is required',
+      } satisfies ApiResponse<never>,
+      { status: 400 },
+    );
+  }
 
   try {
     const { data, error } = await supabaseAdmin
@@ -57,8 +68,19 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 }
 
 // PATCH /api/opportunities/[id]
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { id } = params;
+export async function PATCH(request: NextRequest, context: RouteParams) {
+  const { id } = await context.params;
+
+  if (!id || id === 'undefined') {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Validation error',
+        message: 'Opportunity id is required',
+      } satisfies ApiResponse<never>,
+      { status: 400 },
+    );
+  }
 
   try {
     const updates = (await request.json()) as Partial<Opportunity>;
@@ -92,8 +114,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 // DELETE /api/opportunities/[id]
-export async function DELETE(_request: NextRequest, { params }: RouteParams) {
-  const { id } = params;
+export async function DELETE(_request: NextRequest, context: RouteParams) {
+  const { id } = await context.params;
+
+  if (!id || id === 'undefined') {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Validation error',
+        message: 'Opportunity id is required',
+      } satisfies ApiResponse<never>,
+      { status: 400 },
+    );
+  }
 
   try {
     const { error } = await supabaseAdmin

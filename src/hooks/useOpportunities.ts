@@ -35,6 +35,10 @@ export function useOpportunities() {
     };
 
     const getOpportunityById = async (opportunityId: string): Promise<Opportunity | null> => {
+        if (!opportunityId || opportunityId === 'undefined') {
+            return null;
+        }
+
         try {
             const res = await fetch(`/api/opportunities/${opportunityId}`);
             if (!res.ok) {
