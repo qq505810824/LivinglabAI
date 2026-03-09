@@ -32,7 +32,7 @@ export default function RegisterPage() {
     return (
         <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
             <Card title="创建账号" className="w-full     shadow-xl shadow-sky-200/20">
-                <p className="text-sm text-earth-500 mb-6 -mt-2">注册TalentSync账号，开启您的职场之旅</p>
+                <p className="text-sm text-earth-500 mb-6 -mt-2">注册LivinglabAI账号，开启您的职场之旅</p>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <Input
                         label="用户名"

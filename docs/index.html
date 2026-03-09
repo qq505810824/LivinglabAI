@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CaseVault – Real-World AI Project Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--bg:#0f172a;--s1:#1e293b;--s2:#334155;--s3:#475569;--pri:#818cf8;--pri2:#6366f1;--grn:#34d399;--ylw:#fbbf24;--red:#f87171;--pnk:#f472b6;--blu:#60a5fa;--t1:#f1f5f9;--t2:#94a3b8;--t3:#64748b;--r:12px;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden;}
+a{color:var(--pri);text-decoration:none;}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(15,23,42,0.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(71,85,105,0.3);padding:0 1.5rem;display:flex;align-items:center;height:56px;gap:1rem;}
+.nav-logo{font-weight:900;font-size:1.1rem;color:var(--pri);margin-right:1.5rem;cursor:pointer;white-space:nowrap;}
+.nav-links{display:flex;gap:0.25rem;flex:1;overflow-x:auto;}
+.nav-link{padding:0.45rem 0.9rem;border-radius:8px;font-size:0.82rem;font-weight:500;color:var(--t2);cursor:pointer;white-space:nowrap;transition:all 0.2s;border:none;background:none;}
+.nav-link:hover{color:var(--t1);background:var(--s1);}
+.nav-link.active{color:var(--pri);background:rgba(129,140,248,0.1);}
+.role-toggle{display:flex;background:var(--s1);border-radius:8px;padding:3px;gap:2px;margin-left:auto;flex-shrink:0;}
+.role-btn{padding:0.35rem 0.8rem;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer;border:none;background:none;color:var(--t3);transition:all 0.2s;}
+.role-btn.active{background:var(--pri2);color:white;}
+
+/* MAIN */
+.main{margin-top:56px;padding:1.5rem;max-width:1200px;margin-left:auto;margin-right:auto;}
+
+/* CARDS */
+.page-header{margin-bottom:1.5rem;}
+.page-header h1{font-size:1.6rem;font-weight:800;margin-bottom:0.3rem;}
+.page-header p{color:var(--t2);font-size:0.9rem;}
+.filter-bar{display:flex;gap:0.6rem;margin-bottom:1.5rem;flex-wrap:wrap;align-items:center;}
+.search-box{flex:1;min-width:200px;padding:0.55rem 1rem;border-radius:8px;border:1px solid var(--s3);background:var(--s1);color:var(--t1);font-size:0.85rem;outline:none;}
+.search-box:focus{border-color:var(--pri);}
+.filter-btn{padding:0.45rem 0.85rem;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;border:1px solid var(--s3);background:var(--s1);color:var(--t2);transition:all 0.2s;}
+.filter-btn:hover{border-color:var(--t2);}
+.filter-btn.active{background:rgba(129,140,248,0.15);border-color:var(--pri);color:var(--pri);}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;}
+.card{background:var(--s1);border:1px solid rgba(71,85,105,0.3);border-radius:var(--r);padding:1.4rem;cursor:pointer;transition:all 0.25s;position:relative;}
+.card:hover{transform:translateY(-3px);border-color:rgba(129,140,248,0.3);box-shadow:0 12px 32px rgba(0,0,0,0.3);}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.8rem;gap:0.5rem;}
+.card h3{font-size:0.95rem;font-weight:700;line-height:1.4;}
+.badge{display:inline-block;padding:0.2rem 0.6rem;border-radius:50px;font-size:0.68rem;font-weight:700;white-space:nowrap;}
+.badge-purple{background:rgba(129,140,248,0.15);color:var(--pri);}
+.badge-green{background:rgba(52,211,153,0.15);color:var(--grn);}
+.badge-yellow{background:rgba(251,191,36,0.15);color:var(--ylw);}
+.badge-red{background:rgba(248,113,113,0.15);color:var(--red);}
+.badge-pink{background:rgba(244,114,182,0.15);color:var(--pnk);}
+.badge-blue{background:rgba(96,165,250,0.15);color:var(--blu);}
+.card-meta{display:flex;gap:0.5rem;flex-wrap:wrap;margin:0.6rem 0;}
+.card-meta span{font-size:0.75rem;color:var(--t3);}
+.card-desc{font-size:0.83rem;color:var(--t2);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.card-footer{display:flex;justify-content:space-between;align-items:center;margin-top:0.8rem;padding-top:0.8rem;border-top:1px solid rgba(71,85,105,0.2);}
+.card-footer span{font-size:0.75rem;color:var(--t3);}
+.card-tags{display:flex;gap:0.35rem;flex-wrap:wrap;margin-top:0.5rem;}
+.tag{padding:0.15rem 0.5rem;border-radius:4px;font-size:0.7rem;background:rgba(255,255,255,0.05);color:var(--t3);}
+.company-badge{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem;}
+.company-avatar{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.7rem;color:white;flex-shrink:0;}
+
+/* BUTTONS */
+.btn{padding:0.55rem 1.2rem;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;border:none;transition:all 0.2s;display:inline-flex;align-items:center;gap:0.4rem;}
+.btn-primary{background:var(--pri2);color:white;}
+.btn-primary:hover{background:#4f46e5;transform:translateY(-1px);}
+.btn-green{background:#059669;color:white;}
+.btn-green:hover{background:#047857;}
+.btn-outline{background:none;border:1px solid var(--s3);color:var(--t2);}
+.btn-outline:hover{border-color:var(--t2);color:var(--t1);}
+.btn-sm{padding:0.35rem 0.8rem;font-size:0.78rem;}
+.btn-block{width:100%;justify-content:center;}
+.btn:disabled{opacity:0.4;cursor:not-allowed;transform:none !important;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);overflow-y:auto;padding:2rem 1rem;}
+.modal-overlay.show{display:flex;justify-content:center;align-items:flex-start;}
+.modal{background:var(--s1);border:1px solid var(--s3);border-radius:16px;width:100%;max-width:640px;margin:2rem auto;animation:slideUp 0.3s ease;}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:1.2rem 1.5rem;border-bottom:1px solid rgba(71,85,105,0.3);}
+.modal-header h2{font-size:1.1rem;font-weight:700;}
+.modal-close{width:32px;height:32px;border-radius:8px;border:none;background:var(--s2);color:var(--t2);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.modal-close:hover{background:var(--red);color:white;}
+.modal-body{padding:1.5rem;}
+.modal-footer{padding:1rem 1.5rem;border-top:1px solid rgba(71,85,105,0.3);display:flex;gap:0.6rem;justify-content:flex-end;}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+/* FORM */
+.form-group{margin-bottom:1.2rem;}
+.form-group label{display:block;font-size:0.82rem;font-weight:600;margin-bottom:0.4rem;color:var(--t2);}
+.form-input,.form-textarea,.form-select{width:100%;padding:0.6rem 0.9rem;border-radius:8px;border:1px solid var(--s3);background:var(--s2);color:var(--t1);font-size:0.85rem;font-family:inherit;outline:none;transition:border 0.2s;}
+.form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--pri);}
+.form-textarea{min-height:80px;resize:vertical;}
+.form-select{cursor:pointer;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;}
+
+/* STEPS */
+.steps{display:flex;gap:0.5rem;margin-bottom:1.5rem;}
+.step{flex:1;text-align:center;padding:0.5rem;border-radius:8px;font-size:0.75rem;font-weight:600;color:var(--t3);background:var(--s2);transition:all 0.2s;}
+.step.active{background:rgba(129,140,248,0.15);color:var(--pri);}
+.step.done{background:rgba(52,211,153,0.15);color:var(--grn);}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:2rem;}
+.stat-card{background:var(--s1);border:1px solid rgba(71,85,105,0.3);border-radius:var(--r);padding:1.2rem;text-align:center;}
+.stat-card .num{font-size:2rem;font-weight:900;margin-bottom:0.2rem;}
+.stat-card .label{font-size:0.78rem;color:var(--t3);font-weight:500;}
+
+/* TOAST */
+.toast-container{position:fixed;top:70px;right:1rem;z-index:200;display:flex;flex-direction:column;gap:0.5rem;}
+.toast{padding:0.8rem 1.2rem;border-radius:10px;font-size:0.85rem;font-weight:500;animation:toastIn 0.3s ease;display:flex;align-items:center;gap:0.5rem;max-width:360px;box-shadow:0 8px 24px rgba(0,0,0,0.3);}
+.toast-success{background:#065f46;color:#a7f3d0;border:1px solid #10b981;}
+.toast-info{background:#1e3a5f;color:#93c5fd;border:1px solid #3b82f6;}
+.toast-warning{background:#78350f;color:#fde68a;border:1px solid #f59e0b;}
+.toast-out{animation:toastOut 0.3s ease forwards;}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px);}to{opacity:1;transform:translateX(0);}}
+@keyframes toastOut{to{opacity:0;transform:translateX(40px);}}
+
+/* DETAIL */
+.detail-section{margin-bottom:1.2rem;}
+.detail-section h4{font-size:0.8rem;text-transform:uppercase;letter-spacing:1px;color:var(--t3);margin-bottom:0.4rem;}
+.detail-section p{font-size:0.9rem;color:var(--t2);line-height:1.7;}
+.detail-badges{display:flex;gap:0.4rem;flex-wrap:wrap;margin:0.6rem 0;}
+.detail-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;margin:1rem 0;}
+.detail-info-item{background:var(--s2);border-radius:8px;padding:0.8rem;}
+.detail-info-item .di-label{font-size:0.72rem;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;}
+.detail-info-item .di-val{font-size:0.95rem;font-weight:600;margin-top:0.2rem;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:0.85rem;}
+th{text-align:left;padding:0.7rem;color:var(--t3);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--s3);}
+td{padding:0.7rem;border-bottom:1px solid rgba(71,85,105,0.2);color:var(--t2);}
+tr:hover td{background:rgba(255,255,255,0.02);}
+
+/* STATUS */
+.status{display:inline-flex;align-items:center;gap:0.3rem;font-size:0.78rem;font-weight:600;}
+.status-dot{width:6px;height:6px;border-radius:50%;}
+.status-active .status-dot{background:var(--grn);}
+.status-active{color:var(--grn);}
+.status-pending .status-dot{background:var(--ylw);}
+.status-pending{color:var(--ylw);}
+.status-completed .status-dot{background:var(--blu);}
+.status-completed{color:var(--blu);}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:4rem 2rem;color:var(--t3);}
+.empty-state .emoji{font-size:3rem;margin-bottom:1rem;}
+.empty-state h3{font-size:1.1rem;color:var(--t2);margin-bottom:0.5rem;}
+
+/* RESPONSIVE */
+@media(max-width:640px){
+  .nav{padding:0 0.8rem;gap:0.5rem;}
+  .nav-links{gap:0;}
+  .form-row{grid-template-columns:1fr;}
+  .grid{grid-template-columns:1fr;}
+  .detail-info-grid{grid-template-columns:1fr;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .main{padding:1rem;}
+}
+
+/* SUCCESS ANIMATION */
+.success-anim{text-align:center;padding:2rem;}
+.success-anim .check{width:64px;height:64px;border-radius:50%;background:rgba(52,211,153,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:2rem;animation:popIn 0.4s ease;}
+.success-anim h3{font-size:1.2rem;margin-bottom:0.5rem;}
+.success-anim p{color:var(--t2);font-size:0.9rem;}
+@keyframes popIn{0%{transform:scale(0);}70%{transform:scale(1.15);}100%{transform:scale(1);}}
+
+.progress-bar{height:4px;background:var(--s2);border-radius:2px;overflow:hidden;margin:0.5rem 0;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--pri2),var(--pnk));border-radius:2px;transition:width 0.4s ease;}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav"></nav>
+<div class="main" id="app"></div>
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()"></div>
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ===================== DATA =====================
+const cases = [
+  {id:1,title:"Customer Review Sentiment Analysis",company:"ShopEasy Inc.",logo:"SE",color:"#6366f1",dept:"Marketing",category:"solved",difficulty:"Beginner",skills:["NLP","Python","Data Viz"],hours:8,submissions:23,
+    scenario:"Our marketing team collects 500+ customer reviews monthly across platforms. We manually classified sentiment in 3 days, then tried an AI tool and finished in 30 minutes.",
+    problem:"Need automated pipeline to classify review sentiment, extract key themes, and visualize trends over time.",
+    existing:"Used ChatGPT manually — worked for small batches but not scalable.",
+    deliverable:"Working sentiment analysis pipeline with dashboard and summary report.",
+    publicData:"Anonymized sample of 500 reviews (CSV) with star ratings."},
+  {id:2,title:"E-commerce Customer Service Automation",company:"QuickCart",logo:"QC",color:"#10b981",dept:"Operations",category:"open",difficulty:"Intermediate",skills:["Chatbot","Prompt Eng","API"],hours:15,submissions:18,
+    scenario:"We are a 30-person e-commerce company. Our support team handles 200+ repetitive tickets daily (order status, returns, FAQs).",
+    problem:"Can we use AI to auto-respond to common queries and route complex ones to humans?",
+    existing:"No AI solution tried yet. Currently using canned responses in Zendesk.",
+    deliverable:"Prototype chatbot design + prompt library + ROI analysis report.",
+    publicData:"FAQ document, sample anonymized ticket categories (no customer data)."},
+  {id:3,title:"HR Recruitment Process Optimization",company:"TalentBridge",logo:"TB",color:"#f59e0b",dept:"Human Resources",category:"process",difficulty:"Intermediate",skills:["Process Design","AI Strategy","Reporting"],hours:12,submissions:15,
+    scenario:"Standard hiring flow: screen resumes → phone screen → interview → offer. We receive 300+ applications per role.",
+    problem:"Which steps can AI accelerate? We want analysis and recommendations, not just tools.",
+    existing:"HR uses basic keyword search in ATS. Very manual, prone to bias.",
+    deliverable:"Process analysis report + AI integration roadmap + prototype screening criteria.",
+    publicData:"Anonymized job descriptions, hiring funnel metrics."},
+  {id:4,title:"AI Usage Policy Development",company:"GreenTech Solutions",logo:"GT",color:"#ec4899",dept:"Strategy",category:"policy",difficulty:"Beginner",skills:["Research","Policy Writing","Risk Analysis"],hours:10,submissions:9,
+    scenario:"We're a 150-person company starting to adopt AI tools across departments, but have no formal guidelines.",
+    problem:"We need a comprehensive AI usage policy covering data privacy, acceptable use, vendor evaluation, and ethics.",
+    existing:"Nothing formal. Employees use ChatGPT ad hoc without guidelines.",
+    deliverable:"AI usage policy document + implementation checklist + training outline.",
+    publicData:"Company industry context, size, departments using AI."},
+  {id:5,title:"Social Media Content Generation Pipeline",company:"FreshBrew Coffee",logo:"FB",color:"#8b5cf6",dept:"Marketing",category:"content",difficulty:"Beginner",skills:["AI Tools","Content Strategy","Creative"],hours:6,submissions:31,
+    scenario:"We're a specialty coffee brand. Marketing team creates 20+ social media posts per week across 3 platforms.",
+    problem:"Can AI help generate content calendars, captions, hashtag strategies, and visual concepts?",
+    existing:"Team uses Canva and writes manually. Takes 15+ hours per week.",
+    deliverable:"1-month AI-generated content plan with sample posts, prompts used, and workflow guide.",
+    publicData:"Brand guidelines, product catalog, existing social media examples."},
+  {id:6,title:"Supply Chain Demand Forecasting",company:"LogiPrime",logo:"LP",color:"#06b6d4",dept:"Operations",category:"open",difficulty:"Advanced",skills:["ML","Data Analysis","Python","Statistics"],hours:25,submissions:7,
+    scenario:"We manage logistics for 50+ retail clients. Demand fluctuates seasonally and is hard to predict.",
+    problem:"Can AI/ML models improve our demand forecasting accuracy beyond current spreadsheet-based methods?",
+    existing:"Excel models with moving averages. Accuracy ~65%.",
+    deliverable:"ML forecasting model prototype + accuracy comparison report + deployment recommendations.",
+    publicData:"3 years of anonymized aggregate demand data (monthly)."},
+  {id:7,title:"Financial Report Auto-Summarization",company:"AccuBooks",logo:"AB",color:"#f97316",dept:"Finance",category:"solved",difficulty:"Intermediate",skills:["NLP","LLM","Document Processing"],hours:14,submissions:12,
+    scenario:"Our analysts read 50+ page quarterly reports and write 2-page executive summaries. Takes 4 hours per report.",
+    problem:"We built an LLM pipeline that does it in 10 minutes. Students can try to replicate or improve it.",
+    existing:"GPT-4 with custom prompts + formatting pipeline. Works but sometimes misses nuance.",
+    deliverable:"Working summarization pipeline + quality comparison + improvement suggestions.",
+    publicData:"5 sample public company reports + our generated summaries for comparison."},
+  {id:8,title:"Employee Onboarding Chatbot",company:"ScaleUp Labs",logo:"SL",color:"#14b8a6",dept:"Human Resources",category:"open",difficulty:"Advanced",skills:["Chatbot","RAG","UX Design","API"],hours:20,submissions:5,
+    scenario:"New hires ask the same 100 questions in their first month: benefits, tools, policies, org chart, etc.",
+    problem:"Design an AI chatbot that answers onboarding questions using our internal knowledge base.",
+    existing:"Static FAQ page that nobody reads. HR answers questions repeatedly via Slack.",
+    deliverable:"Chatbot prototype with RAG architecture + knowledge base structure + UX mockups.",
+    publicData:"Sample FAQ content, onboarding checklist template."}
+];
+
+const internships = [
+  {id:1,title:"AI Product Intern",company:"TechCorp",logo:"TC",color:"#6366f1",location:"Taipei / Remote",duration:"3 months",stipend:"NT$30,000/mo",deadline:"Apr 15, 2026",
+    desc:"Join our AI product team to help design and prototype AI-powered features for our SaaS platform. You'll work closely with product managers and ML engineers.",
+    reqs:["Completed at least 2 AI-related projects","Familiar with prompt engineering","Strong communication skills","Portfolio preferred"],
+    perks:["Mentorship from senior PM","Potential full-time offer","Conference attendance budget"]},
+  {id:2,title:"Data Analysis Intern",company:"RetailHub",logo:"RH",color:"#10b981",location:"Taipei",duration:"2 months",stipend:"NT$28,000/mo",deadline:"Apr 30, 2026",
+    desc:"Help our business intelligence team build dashboards and analyze customer behavior data. Great opportunity to work with real e-commerce datasets.",
+    reqs:["Python or R proficiency","SQL basics","Interest in retail/e-commerce","Data visualization skills"],
+    perks:["Real dataset access","Team lunch budget","Flexible hours"]},
+  {id:3,title:"Marketing AI Intern",company:"BrandX Agency",logo:"BX",color:"#ec4899",location:"Remote",duration:"3 months",stipend:"NT$25,000/mo",deadline:"May 10, 2026",
+    desc:"Experiment with AI tools for content creation, audience analysis, and campaign optimization across multiple client accounts.",
+    reqs:["Marketing fundamentals","Experience with AI content tools","Creative thinking","Social media savvy"],
+    perks:["Work with 5+ brand clients","AI tools budget","Portfolio building"]},
+  {id:4,title:"ML Engineering Intern",company:"CloudAI",logo:"CA",color:"#f59e0b",location:"Hsinchu / Hybrid",duration:"6 months",stipend:"NT$40,000/mo",deadline:"Mar 31, 2026",
+    desc:"Contribute to our ML infrastructure team. You'll help build and optimize model training pipelines and deployment systems.",
+    reqs:["Strong Python skills","ML/DL fundamentals","Git proficiency","CS or related major"],
+    perks:["GPU cluster access","Research paper co-authorship","Relocation support"]},
+  {id:5,title:"Business Intelligence Intern",company:"FinServe Group",logo:"FS",color:"#06b6d4",location:"Taipei",duration:"3 months",stipend:"NT$32,000/mo",deadline:"Apr 20, 2026",
+    desc:"Support our analytics team in building AI-augmented financial analysis tools and automated reporting systems.",
+    reqs:["Finance or data science background","Excel/SQL proficiency","Analytical mindset","Attention to detail"],
+    perks:["Finance industry exposure","Networking events","Certificate of completion"]}
+];
+
+const programs = [
+  {id:1,title:"AI for Business Summer Bootcamp",org:"National Taiwan University",duration:"8 weeks",dates:"Jul 1 – Aug 25, 2026",deadline:"May 31, 2026",color:"#6366f1",
+    desc:"Intensive program combining AI fundamentals with business applications. Includes company visits, guest lectures from industry leaders, and a capstone project with real company data.",
+    highlights:["20+ industry guest speakers","Real company capstone project","Certificate from NTU","Alumni network access"]},
+  {id:2,title:"Data Science Immersion Program",org:"NTHU + Microsoft",duration:"6 weeks",dates:"Jul 7 – Aug 15, 2026",deadline:"May 15, 2026",color:"#10b981",
+    desc:"Partnership program with Microsoft focusing on practical data science skills, Azure AI services, and end-to-end ML project lifecycle.",
+    highlights:["Microsoft Azure credits","Industry mentor matching","Hackathon finale","Microsoft certificate"]},
+  {id:3,title:"AI Strategy & Leadership Program",org:"AAIA (Asian AI Academy)",duration:"4 weeks",dates:"Aug 1 – Aug 28, 2026",deadline:"Jun 15, 2026",color:"#f59e0b",
+    desc:"For students interested in AI strategy, product management, and policy. Less coding, more critical thinking about AI adoption in organizations.",
+    highlights:["Executive guest panels","Policy simulation exercises","Cross-cultural teams","Scholarship available"]},
+  {id:4,title:"Applied ML Workshop Series",org:"Google Developer Group Taipei",duration:"10 weekends",dates:"Jun – Aug 2026",deadline:"May 20, 2026",color:"#ec4899",
+    desc:"Weekend workshop series covering practical ML topics from NLP to computer vision. Build a portfolio of 10 projects by the end.",
+    highlights:["Hands-on every session","Google Cloud credits","Community networking","Project portfolio"]}
+];
+
+// ===================== STATE =====================
+let state = {
+  role:'student',
+  page:'cases',
+  filters:{category:'all',difficulty:'all',search:''},
+  myProjects:[],
+  appliedInternships:[],
+  appliedPrograms:[],
+  orgSubmittedCases:[
+    {id:100,title:"Invoice Processing Automation",company:"Your Company",dept:"Finance",status:"active",submissions:4,date:"Feb 20, 2026"},
+    {id:101,title:"Customer Churn Prediction",company:"Your Company",dept:"Marketing",status:"active",submissions:8,date:"Jan 15, 2026"}
+  ],
+  orgPostedOps:[
+    {id:200,title:"AI Research Intern",type:"internship",applicants:12,date:"Feb 28, 2026"}
+  ],
+  caseFormStep:0,
+  caseFormData:{}
+};
+
+// ===================== RENDER ENGINE =====================
+function render(){renderNav();renderPage();}
+
+function renderNav(){
+  const s=state.role==='student';
+  const links=s?[
+    {id:'cases',label:'🔍 Problem Bank'},
+    {id:'internships',label:'💼 Internships'},
+    {id:'programs',label:'🎓 Summer Programs'},
+    {id:'myprojects',label:'📂 My Projects'}
+  ]:[
+    {id:'dashboard',label:'📊 Dashboard'},
+    {id:'submitcase',label:'📝 Submit Case'},
+    {id:'postop',label:'📌 Post Opportunity'},
+    {id:'studentwork',label:'👀 Student Work'}
+  ];
+  document.getElementById('nav').innerHTML=`
+    <div class="nav-logo" onclick="state.page=state.role==='student'?'cases':'dashboard';render()">📦 CaseVault</div>
+    <div class="nav-links">${links.map(l=>`<button class="nav-link ${state.page===l.id?'active':''}" onclick="state.page='${l.id}';render()">${l.label}</button>`).join('')}</div>
+    <div class="role-toggle">
+      <button class="role-btn ${state.role==='student'?'active':''}" onclick="switchRole('student')">🎓 Student</button>
+      <button class="role-btn ${state.role==='org'?'active':''}" onclick="switchRole('org')">🏢 Organization</button>
+    </div>`;
+}
+
+function switchRole(r){
+  state.role=r;
+  state.page=r==='student'?'cases':'dashboard';
+  render();
+  showToast(r==='student'?'Switched to Student view':'Switched to Organization view','info');
+}
+
+function renderPage(){
+  const app=document.getElementById('app');
+  const pages={cases:renderCases,internships:renderInternships,programs:renderPrograms,myprojects:renderMyProjects,dashboard:renderDashboard,submitcase:renderSubmitCase,postop:renderPostOp,studentwork:renderStudentWork};
+  (pages[state.page]||renderCases)(app);
+}
+
+// ===================== PROBLEM BANK =====================
+function renderCases(el){
+  const cats=[{id:'all',label:'All'},{id:'solved',label:'✅ Solved'},{id:'open',label:'💬 Open'},{id:'process',label:'⚙️ Process'},{id:'policy',label:'📜 Policy'},{id:'content',label:'📣 Content'}];
+  const diffs=[{id:'all',label:'All Levels'},{id:'Beginner',label:'🟢 Beginner'},{id:'Intermediate',label:'🟡 Intermediate'},{id:'Advanced',label:'🔴 Advanced'}];
+  let filtered=cases.filter(c=>{
+    if(state.filters.category!=='all'&&c.category!==state.filters.category)return false;
+    if(state.filters.difficulty!=='all'&&c.difficulty!==state.filters.difficulty)return false;
+    if(state.filters.search){const s=state.filters.search.toLowerCase();if(!c.title.toLowerCase().includes(s)&&!c.company.toLowerCase().includes(s)&&!c.dept.toLowerCase().includes(s))return false;}
+    return true;
+  });
+  el.innerHTML=`
+    <div class="page-header"><h1>🔍 Problem Bank</h1><p>Real business cases from real companies. Pick one and start building.</p></div>
+    <div class="filter-bar">
+      <input class="search-box" placeholder="Search cases, companies, departments..." value="${state.filters.search}" oninput="state.filters.search=this.value;render()">
+      ${cats.map(c=>`<button class="filter-btn ${state.filters.category===c.id?'active':''}" onclick="state.filters.category='${c.id}';render()">${c.label}</button>`).join('')}
+      <span style="color:var(--t3);font-size:0.8rem">|</span>
+      ${diffs.map(d=>`<button class="filter-btn ${state.filters.difficulty===d.id?'active':''}" onclick="state.filters.difficulty='${d.id}';render()">${d.label}</button>`).join('')}
+    </div>
+    <p style="font-size:0.8rem;color:var(--t3);margin-bottom:1rem">${filtered.length} case${filtered.length!==1?'s':''} found</p>
+    ${filtered.length?`<div class="grid">${filtered.map(c=>caseCard(c)).join('')}</div>`:'<div class="empty-state"><div class="emoji">🔍</div><h3>No cases match your filters</h3><p>Try adjusting your search or filters</p></div>'}`;
+}
+
+function caseCard(c){
+  const dc=c.difficulty==='Beginner'?'green':c.difficulty==='Intermediate'?'yellow':'red';
+  const cc={solved:'purple',open:'blue',process:'yellow',policy:'pink',content:'green'}[c.category]||'purple';
+  return`<div class="card" onclick="openCaseDetail(${c.id})">
+    <div class="company-badge"><div class="company-avatar" style="background:${c.color}">${c.logo}</div><span style="font-size:0.82rem;color:var(--t2)">${c.company} · ${c.dept}</span></div>
+    <h3>${c.title}</h3>
+    <div class="card-meta"><span class="badge badge-${cc}">${c.category}</span><span class="badge badge-${dc}">${c.difficulty}</span><span class="badge badge-purple">~${c.hours}h</span></div>
+    <p class="card-desc">${c.scenario}</p>
+    <div class="card-tags">${c.skills.map(s=>`<span class="tag">${s}</span>`).join('')}</div>
+    <div class="card-footer"><span>👥 ${c.submissions} students working</span><span>→ View Details</span></div>
+  </div>`;
+}
+
+function openCaseDetail(id){
+  const c=cases.find(x=>x.id===id);if(!c)return;
+  const started=state.myProjects.find(p=>p.id===c.id);
+  const dc=c.difficulty==='Beginner'?'green':c.difficulty==='Intermediate'?'yellow':'red';
+  showModal(`
+    <div class="modal-header"><h2>${c.title}</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="company-badge" style="margin-bottom:1rem"><div class="company-avatar" style="background:${c.color};width:40px;height:40px;font-size:0.85rem">${c.logo}</div><div><div style="font-weight:700">${c.company}</div><div style="font-size:0.8rem;color:var(--t3)">${c.dept} Department</div></div></div>
+      <div class="detail-info-grid">
+        <div class="detail-info-item"><div class="di-label">Difficulty</div><div class="di-val"><span class="badge badge-${dc}">${c.difficulty}</span></div></div>
+        <div class="detail-info-item"><div class="di-label">Est. Hours</div><div class="di-val">${c.hours} hours</div></div>
+        <div class="detail-info-item"><div class="di-label">Category</div><div class="di-val" style="text-transform:capitalize">${c.category}</div></div>
+        <div class="detail-info-item"><div class="di-label">Students</div><div class="di-val">${c.submissions} working</div></div>
+      </div>
+      <div class="detail-section"><h4>📋 Scenario</h4><p>${c.scenario}</p></div>
+      <div class="detail-section"><h4>❓ Problem</h4><p>${c.problem}</p></div>
+      <div class="detail-section"><h4>🔧 Existing Solution</h4><p>${c.existing}</p></div>
+      <div class="detail-section"><h4>📦 Expected Deliverable</h4><p>${c.deliverable}</p></div>
+      <div class="detail-section"><h4>📂 Available Public Data</h4><p>${c.publicData}</p></div>
+      <div class="detail-section"><h4>🛠 Skills</h4><div class="detail-badges">${c.skills.map(s=>`<span class="badge badge-purple">${s}</span>`).join('')}</div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Close</button>
+      ${started?'<button class="btn btn-green" disabled>✓ Already Started</button>':`<button class="btn btn-primary" onclick="showStartProject(${c.id})">🚀 Start Project</button>`}
+    </div>`);
+}
+
+function showStartProject(id){
+  const c=cases.find(x=>x.id===id);
+  showModal(`
+    <div class="modal-header"><h2>Start Project</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <p style="margin-bottom:1rem;color:var(--t2)">You're about to start working on: <strong style="color:var(--t1)">${c.title}</strong></p>
+      <div class="form-group"><label>Team Setup</label>
+        <select class="form-select" id="team-select">
+          <option value="solo">Solo Project</option>
+          <option value="pair">Pair (2 people)</option>
+          <option value="team">Team (3-5 people)</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Your Goal (optional)</label>
+        <textarea class="form-textarea" id="goal-input" placeholder="What do you hope to learn or achieve?"></textarea>
+      </div>
+      <div style="background:var(--s2);border-radius:8px;padding:1rem;margin-top:1rem;">
+        <p style="font-size:0.85rem;color:var(--t2)">⏱ Estimated time: <strong>${c.hours} hours</strong></p>
+        <p style="font-size:0.85rem;color:var(--t2);margin-top:0.3rem">📦 Deliverable: ${c.deliverable}</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="openCaseDetail(${c.id})">← Back</button>
+      <button class="btn btn-primary" onclick="confirmStartProject(${c.id})">✓ Confirm & Start</button>
+    </div>`);
+}
+
+function confirmStartProject(id){
+  const c=cases.find(x=>x.id===id);
+  const team=document.getElementById('team-select').value;
+  const goal=document.getElementById('goal-input').value;
+  state.myProjects.push({id:c.id,title:c.title,company:c.company,color:c.color,logo:c.logo,team,goal,status:'in-progress',startDate:new Date().toLocaleDateString(),progress:0});
+  closeModal();
+  showToast(`🚀 Started: ${c.title}`,'success');
+  render();
+}
+
+// ===================== INTERNSHIPS =====================
+function renderInternships(el){
+  el.innerHTML=`
+    <div class="page-header"><h1>💼 Internship Opportunities</h1><p>Intern positions from companies looking for AI-skilled talent.</p></div>
+    <div class="grid">${internships.map(i=>internCard(i)).join('')}</div>`;
+}
+
+function internCard(i){
+  const applied=state.appliedInternships.includes(i.id);
+  return`<div class="card" onclick="openInternDetail(${i.id})">
+    <div class="company-badge"><div class="company-avatar" style="background:${i.color}">${i.logo}</div><span style="font-size:0.82rem;color:var(--t2)">${i.company}</span></div>
+    <h3>${i.title}</h3>
+    <div class="card-meta"><span class="badge badge-blue">📍 ${i.location}</span><span class="badge badge-purple">⏱ ${i.duration}</span><span class="badge badge-green">💰 ${i.stipend}</span></div>
+    <p class="card-desc">${i.desc}</p>
+    <div class="card-footer"><span>📅 Deadline: ${i.deadline}</span><span>${applied?'✅ Applied':'→ View & Apply'}</span></div>
+  </div>`;
+}
+
+function openInternDetail(id){
+  const i=internships.find(x=>x.id===id);
+  const applied=state.appliedInternships.includes(id);
+  showModal(`
+    <div class="modal-header"><h2>${i.title}</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="company-badge" style="margin-bottom:1rem"><div class="company-avatar" style="background:${i.color};width:40px;height:40px;font-size:0.85rem">${i.logo}</div><div><div style="font-weight:700">${i.company}</div><div style="font-size:0.8rem;color:var(--t3)">${i.location}</div></div></div>
+      <div class="detail-info-grid">
+        <div class="detail-info-item"><div class="di-label">Duration</div><div class="di-val">${i.duration}</div></div>
+        <div class="detail-info-item"><div class="di-label">Stipend</div><div class="di-val">${i.stipend}</div></div>
+        <div class="detail-info-item"><div class="di-label">Location</div><div class="di-val">${i.location}</div></div>
+        <div class="detail-info-item"><div class="di-label">Deadline</div><div class="di-val">${i.deadline}</div></div>
+      </div>
+      <div class="detail-section"><h4>About the Role</h4><p>${i.desc}</p></div>
+      <div class="detail-section"><h4>Requirements</h4>${i.reqs.map(r=>`<p style="margin:0.3rem 0;font-size:0.88rem;color:var(--t2)">• ${r}</p>`).join('')}</div>
+      <div class="detail-section"><h4>Perks</h4>${i.perks.map(p=>`<p style="margin:0.3rem 0;font-size:0.88rem;color:var(--t2)">✨ ${p}</p>`).join('')}</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Close</button>
+      ${applied?'<button class="btn btn-green" disabled>✅ Applied</button>':`<button class="btn btn-primary" onclick="showApplyIntern(${id})">📝 Apply Now</button>`}
+    </div>`);
+}
+
+function showApplyIntern(id){
+  const i=internships.find(x=>x.id===id);
+  showModal(`
+    <div class="modal-header"><h2>Apply: ${i.title}</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Full Name *</label><input class="form-input" id="apply-name" placeholder="Your full name"></div>
+      <div class="form-group"><label>Email *</label><input class="form-input" id="apply-email" placeholder="your@email.com" type="email"></div>
+      <div class="form-group"><label>University & Major</label><input class="form-input" id="apply-uni" placeholder="e.g. NTU - Computer Science"></div>
+      <div class="form-group"><label>Portfolio / LinkedIn URL</label><input class="form-input" id="apply-url" placeholder="https://..."></div>
+      <div class="form-group"><label>Why are you interested? *</label><textarea class="form-textarea" id="apply-why" placeholder="Tell us what excites you about this role..."></textarea></div>
+      <div class="form-group"><label>Relevant CaseVault Projects</label>
+        ${state.myProjects.length?state.myProjects.map(p=>`<div style="background:var(--s2);padding:0.5rem 0.8rem;border-radius:6px;margin:0.3rem 0;font-size:0.85rem;display:flex;align-items:center;gap:0.5rem"><input type="checkbox" checked> ${p.title}</div>`).join(''):'<p style="font-size:0.85rem;color:var(--t3)">No projects yet. Complete some cases to strengthen your application!</p>'}
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="openInternDetail(${id})">← Back</button>
+      <button class="btn btn-primary" onclick="submitInternApp(${id})">📨 Submit Application</button>
+    </div>`);
+}
+
+function submitInternApp(id){
+  const name=document.getElementById('apply-name').value;
+  const email=document.getElementById('apply-email').value;
+  const why=document.getElementById('apply-why').value;
+  if(!name||!email||!why){showToast('Please fill in all required fields','warning');return;}
+  state.appliedInternships.push(id);
+  const i=internships.find(x=>x.id===id);
+  showModal(`
+    <div class="modal-header"><h2>Application Submitted</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="success-anim"><div class="check">✅</div><h3>Application Sent!</h3><p>Your application for <strong>${i.title}</strong> at ${i.company} has been submitted successfully.</p><p style="margin-top:1rem;font-size:0.85rem;color:var(--t3)">You'll receive a confirmation email and hear back within 2 weeks.</p></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();render()">Done</button></div>`);
+  showToast(`📨 Applied to ${i.title}!`,'success');
+}
+
+// ===================== PROGRAMS =====================
+function renderPrograms(el){
+  el.innerHTML=`
+    <div class="page-header"><h1>🎓 Summer Programs</h1><p>University and industry programs to level up your AI skills.</p></div>
+    <div class="grid">${programs.map(p=>programCard(p)).join('')}</div>`;
+}
+
+function programCard(p){
+  const applied=state.appliedPrograms.includes(p.id);
+  return`<div class="card" onclick="openProgramDetail(${p.id})">
+    <h3>${p.title}</h3>
+    <p style="font-size:0.82rem;color:var(--pri);margin:0.3rem 0;font-weight:600">${p.org}</p>
+    <div class="card-meta"><span class="badge badge-purple">⏱ ${p.duration}</span><span class="badge badge-blue">📅 ${p.dates}</span></div>
+    <p class="card-desc">${p.desc}</p>
+    <div class="card-tags">${p.highlights.map(h=>`<span class="tag">✨ ${h}</span>`).join('')}</div>
+    <div class="card-footer"><span>📅 Deadline: ${p.deadline}</span><span>${applied?'✅ Applied':'→ View & Apply'}</span></div>
+  </div>`;
+}
+
+function openProgramDetail(id){
+  const p=programs.find(x=>x.id===id);
+  const applied=state.appliedPrograms.includes(id);
+  showModal(`
+    <div class="modal-header"><h2>${p.title}</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <p style="color:var(--pri);font-weight:600;margin-bottom:1rem">${p.org}</p>
+      <div class="detail-info-grid">
+        <div class="detail-info-item"><div class="di-label">Duration</div><div class="di-val">${p.duration}</div></div>
+        <div class="detail-info-item"><div class="di-label">Dates</div><div class="di-val">${p.dates}</div></div>
+      </div>
+      <div class="detail-section"><h4>About</h4><p>${p.desc}</p></div>
+      <div class="detail-section"><h4>Highlights</h4>${p.highlights.map(h=>`<p style="margin:0.3rem 0;font-size:0.88rem;color:var(--t2)">✨ ${h}</p>`).join('')}</div>
+      <p style="margin-top:1rem;font-size:0.85rem;color:var(--ylw);font-weight:600">📅 Application Deadline: ${p.deadline}</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Close</button>
+      ${applied?'<button class="btn btn-green" disabled>✅ Applied</button>':`<button class="btn btn-primary" onclick="showApplyProgram(${id})">📝 Apply Now</button>`}
+    </div>`);
+}
+
+function showApplyProgram(id){
+  const p=programs.find(x=>x.id===id);
+  showModal(`
+    <div class="modal-header"><h2>Apply: ${p.title}</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Full Name *</label><input class="form-input" id="prog-name" placeholder="Your full name"></div>
+      <div class="form-group"><label>Email *</label><input class="form-input" id="prog-email" placeholder="your@email.com" type="email"></div>
+      <div class="form-group"><label>University & Year</label><input class="form-input" id="prog-uni" placeholder="e.g. NCCU - Junior"></div>
+      <div class="form-group"><label>Statement of Interest *</label><textarea class="form-textarea" id="prog-statement" rows="4" placeholder="Why do you want to join this program? What do you hope to gain?"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="openProgramDetail(${id})">← Back</button>
+      <button class="btn btn-primary" onclick="submitProgApp(${id})">📨 Submit</button>
+    </div>`);
+}
+
+function submitProgApp(id){
+  const name=document.getElementById('prog-name').value;
+  const email=document.getElementById('prog-email').value;
+  const stmt=document.getElementById('prog-statement').value;
+  if(!name||!email||!stmt){showToast('Please fill in all required fields','warning');return;}
+  state.appliedPrograms.push(id);
+  const p=programs.find(x=>x.id===id);
+  showModal(`
+    <div class="modal-header"><h2>Application Submitted</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body"><div class="success-anim"><div class="check">✅</div><h3>You're In the Running!</h3><p>Your application for <strong>${p.title}</strong> has been submitted.</p><p style="margin-top:0.5rem;font-size:0.85rem;color:var(--t3)">Results will be announced by ${p.deadline}.</p></div></div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();render()">Done</button></div>`);
+  showToast(`📨 Applied to ${p.title}!`,'success');
+}
+
+// ===================== MY PROJECTS =====================
+function renderMyProjects(el){
+  if(!state.myProjects.length){
+    el.innerHTML=`<div class="page-header"><h1>📂 My Projects</h1><p>Track your progress on cases you've started.</p></div>
+      <div class="empty-state"><div class="emoji">📭</div><h3>No projects yet</h3><p>Head to the Problem Bank and start your first project!</p><button class="btn btn-primary" style="margin-top:1rem" onclick="state.page='cases';render()">Browse Problem Bank →</button></div>`;
+    return;
+  }
+  el.innerHTML=`
+    <div class="page-header"><h1>📂 My Projects (${state.myProjects.length})</h1><p>Track your progress on cases you've started.</p></div>
+    <div class="grid">${state.myProjects.map((p,i)=>{
+      const prog=Math.min(100,p.progress||Math.floor(Math.random()*60)+10);
+      state.myProjects[i].progress=prog;
+      return`<div class="card">
+        <div class="company-badge"><div class="company-avatar" style="background:${p.color}">${p.logo}</div><span style="font-size:0.82rem;color:var(--t2)">${p.company}</span></div>
+        <h3>${p.title}</h3>
+        <div class="card-meta"><span class="badge badge-blue">👥 ${p.team}</span><span class="badge badge-purple">Started ${p.startDate}</span></div>
+        ${p.goal?`<p class="card-desc" style="font-style:italic">"${p.goal}"</p>`:''}
+        <div style="margin-top:0.8rem"><div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--t3)"><span>Progress</span><span>${prog}%</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div></div>
+        <div class="card-footer">
+          <span class="status ${prog>=100?'status-completed':prog>0?'status-active':'status-pending'}"><span class="status-dot"></span>${prog>=100?'Completed':prog>0?'In Progress':'Not Started'}</span>
+          ${prog<100?`<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();updateProgress(${i})">Update Progress</button>`:`<button class="btn btn-sm btn-green" onclick="event.stopPropagation();submitWork(${i})">📤 Submit Work</button>`}
+        </div>
+      </div>`;}).join('')}</div>`;
+}
+
+function updateProgress(idx){
+  state.myProjects[idx].progress=Math.min(100,state.myProjects[idx].progress+25);
+  showToast('Progress updated! +25%','success');
+  render();
+}
+
+function submitWork(idx){
+  showModal(`
+    <div class="modal-header"><h2>Submit Your Work</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <p style="margin-bottom:1rem;color:var(--t2)">Submitting work for: <strong style="color:var(--t1)">${state.myProjects[idx].title}</strong></p>
+      <div class="form-group"><label>Project Summary *</label><textarea class="form-textarea" id="submit-summary" rows="3" placeholder="Brief description of what you built..."></textarea></div>
+      <div class="form-group"><label>Key Findings</label><textarea class="form-textarea" id="submit-findings" rows="3" placeholder="What did you discover?"></textarea></div>
+      <div class="form-group"><label>Demo / Repository URL</label><input class="form-input" id="submit-url" placeholder="https://github.com/..."></div>
+      <div class="form-group"><label>Share with company?</label>
+        <select class="form-select" id="submit-share"><option value="yes">Yes, share my work with the company</option><option value="no">No, keep it private</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-green" onclick="confirmSubmitWork(${idx})">📤 Submit</button>
+    </div>`);
+}
+
+function confirmSubmitWork(idx){
+  const summary=document.getElementById('submit-summary').value;
+  if(!summary){showToast('Please add a project summary','warning');return;}
+  state.myProjects[idx].status='submitted';
+  closeModal();
+  showToast('🎉 Work submitted successfully! The company will be notified.','success');
+  render();
+}
+
+// ===================== ORG DASHBOARD =====================
+function renderDashboard(el){
+  const tc=state.orgSubmittedCases.length;
+  const to=state.orgPostedOps.length;
+  const ts=state.orgSubmittedCases.reduce((a,c)=>a+c.submissions,0);
+  el.innerHTML=`
+    <div class="page-header"><h1>📊 Organization Dashboard</h1><p>Manage your contributed cases and posted opportunities.</p></div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="num" style="color:var(--pri)">${tc}</div><div class="label">Cases Submitted</div></div>
+      <div class="stat-card"><div class="num" style="color:var(--grn)">${ts}</div><div class="label">Student Submissions</div></div>
+      <div class="stat-card"><div class="num" style="color:var(--pnk)">${to}</div><div class="label">Opportunities Posted</div></div>
+      <div class="stat-card"><div class="num" style="color:var(--ylw)">${ts>0?Math.round(ts/tc):0}</div><div class="label">Avg. per Case</div></div>
+    </div>
+    <h3 style="margin-bottom:1rem;font-size:1rem">📋 Your Submitted Cases</h3>
+    ${state.orgSubmittedCases.length?`<div class="table-wrap"><table>
+      <tr><th>Case Title</th><th>Department</th><th>Status</th><th>Student Work</th><th>Date</th><th></th></tr>
+      ${state.orgSubmittedCases.map(c=>`<tr>
+        <td style="font-weight:600;color:var(--t1)">${c.title}</td>
+        <td>${c.dept}</td>
+        <td><span class="status status-active"><span class="status-dot"></span>${c.status}</span></td>
+        <td>${c.submissions} submissions</td>
+        <td>${c.date}</td>
+        <td><button class="btn btn-sm btn-outline" onclick="viewCaseSubmissions('${c.title}',${c.submissions})">View →</button></td>
+      </tr>`).join('')}
+    </table></div>`:'<div class="empty-state"><div class="emoji">📝</div><h3>No cases yet</h3><p>Submit your first case to start receiving student work!</p></div>'}
+    <h3 style="margin:2rem 0 1rem;font-size:1rem">📌 Posted Opportunities</h3>
+    ${state.orgPostedOps.length?`<div class="table-wrap"><table>
+      <tr><th>Title</th><th>Type</th><th>Applicants</th><th>Date</th></tr>
+      ${state.orgPostedOps.map(o=>`<tr>
+        <td style="font-weight:600;color:var(--t1)">${o.title}</td>
+        <td><span class="badge badge-blue">${o.type}</span></td>
+        <td>${o.applicants} applicants</td>
+        <td>${o.date}</td>
+      </tr>`).join('')}
+    </table></div>`:'<p style="color:var(--t3);font-size:0.9rem">No opportunities posted yet.</p>'}
+    <div style="margin-top:2rem;display:flex;gap:0.8rem;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="state.page='submitcase';state.caseFormStep=0;state.caseFormData={};render()">📝 Submit New Case</button>
+      <button class="btn btn-outline" onclick="state.page='postop';render()">📌 Post Opportunity</button>
+    </div>`;
+}
+
+function viewCaseSubmissions(title,count){
+  const mockStudents=[
+    {name:"Chen Wei-Lin",uni:"NTU",rating:4.8,summary:"Built a complete automation pipeline using Python + OpenAI API with interactive dashboard."},
+    {name:"Lin Yu-Ting",uni:"NCCU",rating:4.5,summary:"Comprehensive analysis report with cost-benefit comparison and implementation roadmap."},
+    {name:"Wang Jia-Hui",uni:"NTHU",rating:4.2,summary:"Creative approach using multiple LLMs for comparison. Strong methodology section."},
+    {name:"Zhang Min",uni:"NCKU",rating:3.9,summary:"Good research report with policy recommendations. Could improve on practical aspects."}
+  ].slice(0,Math.min(count,4));
+  showModal(`
+    <div class="modal-header"><h2>Student Work: ${title}</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <p style="color:var(--t2);margin-bottom:1rem">${count} students have submitted work for this case.</p>
+      ${mockStudents.map(s=>`
+        <div style="background:var(--s2);border-radius:10px;padding:1rem;margin-bottom:0.8rem;border:1px solid rgba(71,85,105,0.3)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+            <div><strong>${s.name}</strong><span style="color:var(--t3);font-size:0.8rem;margin-left:0.5rem">${s.uni}</span></div>
+            <span class="badge badge-yellow">⭐ ${s.rating}</span>
+          </div>
+          <p style="font-size:0.85rem;color:var(--t2)">${s.summary}</p>
+          <div style="margin-top:0.6rem;display:flex;gap:0.4rem">
+            <button class="btn btn-sm btn-primary" onclick="showToast('Opening ${s.name}\\'s full submission...','info')">📄 View Full</button>
+            <button class="btn btn-sm btn-outline" onclick="showToast('💬 Message sent to ${s.name}','success')">💬 Contact</button>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal()">Close</button></div>`);
+}
+
+// ===================== SUBMIT CASE (MULTI-STEP) =====================
+function renderSubmitCase(el){
+  const step=state.caseFormStep;
+  const d=state.caseFormData;
+  const stepLabels=['Company Info','Problem Description','Expected Output','Review & Submit'];
+  el.innerHTML=`
+    <div class="page-header"><h1>📝 Submit a Case</h1><p>Share a real business scenario. It only takes about 15 minutes.</p></div>
+    <div class="steps">${stepLabels.map((s,i)=>`<div class="step ${i===step?'active':i<step?'done':''}">${i<step?'✓':i+1}. ${s}</div>`).join('')}</div>
+    <div style="background:var(--s1);border-radius:16px;padding:1.5rem;border:1px solid rgba(71,85,105,0.3)">
+      ${step===0?renderCaseStep0(d):step===1?renderCaseStep1(d):step===2?renderCaseStep2(d):renderCaseStep3(d)}
+    </div>`;
+}
+
+function renderCaseStep0(d){
+  return`
+    <h3 style="margin-bottom:1rem">🏢 Company Information</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Company Name *</label><input class="form-input" id="cf-company" value="${d.company||''}" placeholder="e.g. TechCorp Inc."></div>
+      <div class="form-group"><label>Industry *</label>
+        <select class="form-select" id="cf-industry"><option value="">Select...</option><option ${d.industry==='tech'?'selected':''} value="tech">Technology</option><option ${d.industry==='retail'?'selected':''} value="retail">Retail / E-commerce</option><option ${d.industry==='finance'?'selected':''} value="finance">Finance</option><option ${d.industry==='healthcare'?'selected':''} value="healthcare">Healthcare</option><option ${d.industry==='manufacturing'?'selected':''} value="manufacturing">Manufacturing</option><option ${d.industry==='education'?'selected':''} value="education">Education</option><option ${d.industry==='other'?'selected':''} value="other">Other</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Company Size</label>
+        <select class="form-select" id="cf-size"><option value="">Select...</option><option ${d.size==='1-10'?'selected':''} value="1-10">1-10</option><option ${d.size==='11-50'?'selected':''} value="11-50">11-50</option><option ${d.size==='51-200'?'selected':''} value="51-200">51-200</option><option ${d.size==='200+'?'selected':''} value="200+">200+</option></select>
+      </div>
+      <div class="form-group"><label>Department *</label>
+        <select class="form-select" id="cf-dept"><option value="">Select...</option><option ${d.dept==='Marketing'?'selected':''} value="Marketing">Marketing</option><option ${d.dept==='Operations'?'selected':''} value="Operations">Operations</option><option ${d.dept==='HR'?'selected':''} value="HR">Human Resources</option><option ${d.dept==='Finance'?'selected':''} value="Finance">Finance</option><option ${d.dept==='Engineering'?'selected':''} value="Engineering">Engineering</option><option ${d.dept==='Strategy'?'selected':''} value="Strategy">Strategy</option></select>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:1rem"><button class="btn btn-primary" onclick="caseFormNext(0)">Next →</button></div>`;
+}
+
+function renderCaseStep1(d){
+  return`
+    <h3 style="margin-bottom:1rem">💡 Problem Description</h3>
+    <div class="form-group"><label>Describe the scenario *</label><textarea class="form-textarea" id="cf-scenario" rows="3" placeholder="What does your team do? What's the context?">${d.scenario||''}</textarea></div>
+    <div class="form-group"><label>What's the problem or challenge? *</label><textarea class="form-textarea" id="cf-problem" rows="3" placeholder="What pain point are you experiencing?">${d.problem||''}</textarea></div>
+    <div class="form-group"><label>Have you tried any solutions?</label><textarea class="form-textarea" id="cf-existing" rows="2" placeholder="Any tools or approaches tried?">${d.existing||''}</textarea></div>
+    <div class="form-group"><label>What public data can you share?</label><textarea class="form-textarea" id="cf-data" rows="2" placeholder="e.g. sample documents, process diagrams, templates...">${d.publicData||''}</textarea></div>
+    <div style="display:flex;justify-content:space-between;margin-top:1rem">
+      <button class="btn btn-outline" onclick="caseFormBack(1)">← Back</button>
+      <button class="btn btn-primary" onclick="caseFormNext(1)">Next →</button>
+    </div>`;
+}
+
+function renderCaseStep2(d){
+  return`
+    <h3 style="margin-bottom:1rem">📦 Expected Output</h3>
+    <div class="form-group"><label>What type of deliverable do you want? *</label>
+      <select class="form-select" id="cf-delivType"><option value="">Select...</option><option ${d.delivType==='report'?'selected':''} value="report">Research Report</option><option ${d.delivType==='prototype'?'selected':''} value="prototype">Working Prototype / Demo</option><option ${d.delivType==='strategy'?'selected':''} value="strategy">Strategy / Recommendations</option><option ${d.delivType==='policy'?'selected':''} value="policy">Policy Document</option><option ${d.delivType==='creative'?'selected':''} value="creative">Creative / Content Plan</option></select>
+    </div>
+    <div class="form-group"><label>Describe the ideal deliverable</label><textarea class="form-textarea" id="cf-delivDesc" rows="2" placeholder="What would success look like?">${d.delivDesc||''}</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>Suggested Difficulty</label>
+        <select class="form-select" id="cf-diff"><option value="Beginner" ${d.diff==='Beginner'?'selected':''}>Beginner</option><option value="Intermediate" ${d.diff==='Intermediate'||!d.diff?'selected':''}>Intermediate</option><option value="Advanced" ${d.diff==='Advanced'?'selected':''}>Advanced</option></select>
+      </div>
+      <div class="form-group"><label>Estimated Hours</label><input class="form-input" type="number" id="cf-hours" value="${d.hours||10}" min="1" max="100"></div>
+    </div>
+    <div class="form-group"><label>Relevant Skills (comma separated)</label><input class="form-input" id="cf-skills" value="${d.skills||''}" placeholder="e.g. Python, NLP, Data Analysis"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:1rem">
+      <button class="btn btn-outline" onclick="caseFormBack(2)">← Back</button>
+      <button class="btn btn-primary" onclick="caseFormNext(2)">Review →</button>
+    </div>`;
+}
+
+function renderCaseStep3(d){
+  return`
+    <h3 style="margin-bottom:1rem">✅ Review & Submit</h3>
+    <div style="background:var(--s2);border-radius:10px;padding:1.2rem;margin-bottom:1rem">
+      <h4 style="color:var(--pri);font-size:0.85rem;margin-bottom:0.8rem">COMPANY</h4>
+      <p style="font-size:0.9rem"><strong>${d.company}</strong> · ${d.industry} · ${d.size} employees · ${d.dept} Dept</p>
+    </div>
+    <div style="background:var(--s2);border-radius:10px;padding:1.2rem;margin-bottom:1rem">
+      <h4 style="color:var(--pri);font-size:0.85rem;margin-bottom:0.8rem">PROBLEM</h4>
+      <p style="font-size:0.88rem;color:var(--t2);margin-bottom:0.5rem"><strong>Scenario:</strong> ${d.scenario}</p>
+      <p style="font-size:0.88rem;color:var(--t2);margin-bottom:0.5rem"><strong>Problem:</strong> ${d.problem}</p>
+      ${d.existing?`<p style="font-size:0.88rem;color:var(--t2);margin-bottom:0.5rem"><strong>Tried:</strong> ${d.existing}</p>`:''}
+      ${d.publicData?`<p style="font-size:0.88rem;color:var(--t2)"><strong>Public data:</strong> ${d.publicData}</p>`:''}
+    </div>
+    <div style="background:var(--s2);border-radius:10px;padding:1.2rem;margin-bottom:1rem">
+      <h4 style="color:var(--pri);font-size:0.85rem;margin-bottom:0.8rem">DELIVERABLE</h4>
+      <p style="font-size:0.88rem;color:var(--t2)"><strong>Type:</strong> ${d.delivType} · <strong>Difficulty:</strong> ${d.diff} · <strong>Hours:</strong> ~${d.hours}h</p>
+      ${d.delivDesc?`<p style="font-size:0.88rem;color:var(--t2);margin-top:0.3rem">${d.delivDesc}</p>`:''}
+      ${d.skills?`<div class="detail-badges" style="margin-top:0.5rem">${d.skills.split(',').map(s=>`<span class="badge badge-purple">${s.trim()}</span>`).join('')}</div>`:''}
+    </div>
+    <div style="background:rgba(129,140,248,0.1);border:1px solid rgba(129,140,248,0.2);border-radius:10px;padding:1rem;margin-bottom:1rem">
+      <p style="font-size:0.85rem;color:var(--pri)">🤖 After submission, our AI will automatically structure this into a full project brief with background, goals, steps, and evaluation criteria for students.</p>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:1rem">
+      <button class="btn btn-outline" onclick="caseFormBack(3)">← Edit</button>
+      <button class="btn btn-green" onclick="submitCaseForm()">✅ Submit Case</button>
+    </div>`;
+}
+
+function saveCaseStep(step){
+  const d=state.caseFormData;
+  if(step===0){d.company=document.getElementById('cf-company').value;d.industry=document.getElementById('cf-industry').value;d.size=document.getElementById('cf-size').value;d.dept=document.getElementById('cf-dept').value;}
+  if(step===1){d.scenario=document.getElementById('cf-scenario').value;d.problem=document.getElementById('cf-problem').value;d.existing=document.getElementById('cf-existing').value;d.publicData=document.getElementById('cf-data').value;}
+  if(step===2){d.delivType=document.getElementById('cf-delivType').value;d.delivDesc=document.getElementById('cf-delivDesc').value;d.diff=document.getElementById('cf-diff').value;d.hours=document.getElementById('cf-hours').value;d.skills=document.getElementById('cf-skills').value;}
+}
+
+function caseFormNext(step){
+  saveCaseStep(step);
+  const d=state.caseFormData;
+  if(step===0&&(!d.company||!d.industry||!d.dept)){showToast('Please fill in required fields','warning');return;}
+  if(step===1&&(!d.scenario||!d.problem)){showToast('Please describe the scenario and problem','warning');return;}
+  if(step===2&&!d.delivType){showToast('Please select a deliverable type','warning');return;}
+  state.caseFormStep=step+1;render();
+}
+
+function caseFormBack(step){saveCaseStep(step);state.caseFormStep=step-1;render();}
+
+function submitCaseForm(){
+  const d=state.caseFormData;
+  state.orgSubmittedCases.push({id:Date.now(),title:d.problem.substring(0,50)+'...',company:d.company,dept:d.dept,status:'active',submissions:0,date:new Date().toLocaleDateString()});
+  state.caseFormStep=0;state.caseFormData={};
+  state.page='dashboard';
+  render();
+  showToast('🎉 Case submitted! AI is generating the project brief...','success');
+  setTimeout(()=>showToast('🤖 Project brief generated and published to Problem Bank!','info'),2500);
+}
+
+// ===================== POST OPPORTUNITY =====================
+function renderPostOp(el){
+  el.innerHTML=`
+    <div class="page-header"><h1>📌 Post an Opportunity</h1><p>Share internships or summer programs with students on the platform.</p></div>
+    <div style="background:var(--s1);border-radius:16px;padding:1.5rem;border:1px solid rgba(71,85,105,0.3);max-width:640px">
+      <div class="form-group"><label>Opportunity Type *</label>
+        <select class="form-select" id="op-type"><option value="internship">💼 Internship</option><option value="program">🎓 Summer Program</option></select>
+      </div>
+      <div class="form-group"><label>Title *</label><input class="form-input" id="op-title" placeholder="e.g. AI Product Intern"></div>
+      <div class="form-group"><label>Organization / Company *</label><input class="form-input" id="op-org" placeholder="e.g. TechCorp"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Location</label><input class="form-input" id="op-location" placeholder="e.g. Taipei / Remote"></div>
+        <div class="form-group"><label>Duration</label><input class="form-input" id="op-duration" placeholder="e.g. 3 months"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Dates</label><input class="form-input" id="op-dates" placeholder="e.g. Jul - Sep 2026"></div>
+        <div class="form-group"><label>Application Deadline</label><input class="form-input" id="op-deadline" placeholder="e.g. May 31, 2026" type="date"></div>
+      </div>
+      <div class="form-group"><label>Stipend / Cost</label><input class="form-input" id="op-stipend" placeholder="e.g. NT$30,000/month or Free"></div>
+      <div class="form-group"><label>Description *</label><textarea class="form-textarea" id="op-desc" rows="4" placeholder="What will participants do? What will they learn?"></textarea></div>
+      <div class="form-group"><label>Requirements (one per line)</label><textarea class="form-textarea" id="op-reqs" rows="3" placeholder="e.g.&#10;Python proficiency&#10;Interest in AI&#10;Portfolio preferred"></textarea></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:1rem;gap:0.6rem">
+        <button class="btn btn-outline" onclick="state.page='dashboard';render()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitOpportunity()">📌 Publish</button>
+      </div>
+    </div>`;
+}
+
+function submitOpportunity(){
+  const title=document.getElementById('op-title').value;
+  const org=document.getElementById('op-org').value;
+  const desc=document.getElementById('op-desc').value;
+  const type=document.getElementById('op-type').value;
+  if(!title||!org||!desc){showToast('Please fill in required fields','warning');return;}
+  state.orgPostedOps.push({id:Date.now(),title,type,applicants:0,date:new Date().toLocaleDateString()});
+  state.page='dashboard';render();
+  showToast(`📌 ${type==='internship'?'Internship':'Program'} "${title}" published!`,'success');
+}
+
+// ===================== STUDENT WORK (ORG VIEW) =====================
+function renderStudentWork(el){
+  if(!state.orgSubmittedCases.length){
+    el.innerHTML=`<div class="page-header"><h1>👀 Student Work</h1><p>Review submissions from students working on your cases.</p></div>
+      <div class="empty-state"><div class="emoji">📭</div><h3>No cases yet</h3><p>Submit a case first, then students will start submitting their work here.</p></div>`;
+    return;
+  }
+  el.innerHTML=`
+    <div class="page-header"><h1>👀 Student Work</h1><p>Review submissions from students working on your cases.</p></div>
+    <div class="grid">${state.orgSubmittedCases.map(c=>`
+      <div class="card" onclick="viewCaseSubmissions('${c.title.replace(/'/g,"\\'")}',${c.submissions})">
+        <h3>${c.title}</h3>
+        <div class="card-meta"><span class="badge badge-blue">${c.dept}</span><span class="badge badge-green">${c.submissions} submissions</span></div>
+        <div class="card-footer"><span>Published ${c.date}</span><span>→ View Submissions</span></div>
+      </div>`).join('')}</div>`;
+}
+
+// ===================== MODAL & TOAST =====================
+function showModal(html){
+  const overlay=document.getElementById('modal-overlay');
+  overlay.innerHTML=`<div class="modal">${html}</div>`;
+  overlay.classList.add('show');
+  document.body.style.overflow='hidden';
+}
+
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('show');
+  document.body.style.overflow='';
+}
+
+function showToast(msg,type='info'){
+  const container=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className=`toast toast-${type}`;
+  t.innerHTML=msg;
+  container.appendChild(t);
+  setTimeout(()=>{t.classList.add('toast-out');setTimeout(()=>t.remove(),300);},3000);
+}
+
+// ===================== INIT =====================
+render();
+</script>
+</body>
+</html>

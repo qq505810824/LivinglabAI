@@ -52,7 +52,7 @@ export function Header() {
                     <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold shadow-indigo-200 shadow-lg text-xl">
                         AI
                     </div>
-                    <span className="font-bold text-xl tracking-tight text-gray-900">TalentSync AI</span>
+                    <span className="font-bold text-xl tracking-tight text-gray-900">LivinglabAI</span>
                 </div>
                 <div className="flex items-center gap-6">
                     <button className="p-3 text-gray-500 hover:bg-gray-100 rounded-full relative transition-colors">

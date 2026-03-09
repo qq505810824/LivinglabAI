@@ -22,13 +22,13 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
     title: {
-        template: '%s | TalentSyncAI',
-        default: 'TalentSyncAI',
+        template: '%s | LivinglabAI',
+        default: 'LivinglabAI',
     },
     description: '',
     keywords: ['AI'],
     openGraph: {
-        title: 'TalentSyncAI',
+        title: 'LivinglabAI',
         description: '',
         type: 'website',
         locale: 'zh_CN',

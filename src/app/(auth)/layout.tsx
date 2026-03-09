@@ -10,7 +10,7 @@ export default function AuthLayout({
             <header className="flex h-16 items-center justify-center border-b border-tea-100 bg-white/50 backdrop-blur-md px-4">
                 <Link href="/" className="flex items-center gap-2 text-xl font-bold text-tea-700 hover:text-tea-600 transition-colors">
                     <img src="/icon.jpeg" className="h-8 w-8" alt="Logo" />
-                    <span className="tracking-wide">TalentSyncAI</span>
+                    <span className="tracking-wide">LivinglabAI</span>
                 </Link>
             </header>
 
@@ -19,7 +19,7 @@ export default function AuthLayout({
             </main>
 
             <footer className="py-6 text-center text-sm text-earth-500">
-                <p>© {new Date().getFullYear()} TalentSyncAI. All rights reserved.</p>
+                <p>© {new Date().getFullYear()} LivinglabAI. All rights reserved.</p>
             </footer>
         </div>
     )
