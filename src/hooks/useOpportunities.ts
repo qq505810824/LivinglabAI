@@ -1,7 +1,7 @@
 'use client';
 
-import type { CreateOpportunityInput, Opportunity } from '@/types/opportunity';
 import type { ApiResponse } from '@/types/meeting';
+import type { CreateOpportunityInput, Opportunity, OpportunityType } from '@/types/opportunity';
 import { useEffect, useState } from 'react';
 
 export function useOpportunities() {
@@ -9,12 +9,12 @@ export function useOpportunities() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
-    const fetchOpportunities = async (organizationId?: string) => {
+    const fetchOpportunities = async (organizationId?: string, type?: OpportunityType) => {
         try {
             setIsLoading(true);
             const url = organizationId
-                ? `/api/opportunities?organizationId=${encodeURIComponent(organizationId)}`
-                : '/api/opportunities';
+                ? `/api/opportunities?organizationId=${encodeURIComponent(organizationId)}&type=${encodeURIComponent(type ?? '')}`
+                : `/api/opportunities?type=${encodeURIComponent(type ?? '')}`;
 
             const res = await fetch(url);
             if (!res.ok) {

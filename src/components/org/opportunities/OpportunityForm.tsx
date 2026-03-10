@@ -16,6 +16,7 @@ interface OpportunityFormProps {
 
 const emptyValues: CreateOpportunityInput = {
     type: 'internship',
+    organization_name: '',
     title: '',
     description: '',
     location: '',
@@ -50,7 +51,6 @@ export const OpportunityForm: React.FC<OpportunityFormProps> = ({
         }));
     };
 
-    const toText = (arr?: string[]) => (arr && arr.length ? arr.join(', ') : '');
     const fromLines = (value: string) =>
         value
             .split('\n')
@@ -96,8 +96,8 @@ export const OpportunityForm: React.FC<OpportunityFormProps> = ({
                     label="Organization / Company *"
                     placeholder="e.g. TechCorp"
                     required
-                    value={form.location}
-                    onChange={(e) => handleChange('location', e.target.value)}
+                    value={form.organization_name}
+                    onChange={(e) => handleChange('organization_name', e.target.value)}
                 />
 
                 <div>
@@ -152,8 +152,21 @@ export const OpportunityForm: React.FC<OpportunityFormProps> = ({
                     <textarea
                         className="w-full px-4 py-2 bg-background-tertiary border border-border rounded-lg text-sm text-text-primary min-h-[80px]"
                         placeholder={'e.g.\nPython proficiency\nInterest in AI\nPortfolio preferred'}
-                        value={form.requirements.join('\n')}
+                        // value={form.requirements.join('\n')}
+                        defaultValue={form.requirements.join('\n')}
                         onChange={(e) => handleChange('requirements', fromLines(e.target.value))}
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-1">
+                        Perks (one per line)
+                    </label>
+                    <textarea
+                        className="w-full px-4 py-2 bg-background-tertiary border border-border rounded-lg text-sm text-text-primary min-h-[80px]"
+                        placeholder={'e.g.\nPython proficiency\nInterest in AI\nPortfolio preferred'}
+                        defaultValue={form.perks.join('\n')}
+                        onChange={(e) => handleChange('perks', fromLines(e.target.value))}
                     />
                 </div>
 

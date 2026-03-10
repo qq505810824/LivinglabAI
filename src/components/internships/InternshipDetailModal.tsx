@@ -55,28 +55,36 @@ export function InternshipDetailModal({
           </div>
 
           {/* Info grid */}
-          <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+          <div className="grid grid-cols-2 gap-3 mb-5 text-sm">
             {selected.duration && (
-              <div>
-                <div className="text-xs text-text-tertiary">Duration</div>
+              <div className="rounded-xl border border-border/60 bg-background-secondary/70 px-3 py-2.5 flex flex-col gap-1">
+                <div className="text-[11px] font-medium tracking-wide text-text-tertiary uppercase">
+                  Duration
+                </div>
                 <div className="text-text-primary">{selected.duration}</div>
               </div>
             )}
             {selected.stipend && (
-              <div>
-                <div className="text-xs text-text-tertiary">Stipend / Cost</div>
+              <div className="rounded-xl border border-border/60 bg-background-secondary/70 px-3 py-2.5 flex flex-col gap-1">
+                <div className="text-[11px] font-medium tracking-wide text-text-tertiary uppercase">
+                  Stipend / Cost
+                </div>
                 <div className="text-text-primary">{selected.stipend}</div>
               </div>
             )}
             {selected.location && (
-              <div>
-                <div className="text-xs text-text-tertiary">Location</div>
+              <div className="rounded-xl border border-border/60 bg-background-secondary/70 px-3 py-2.5 flex flex-col gap-1">
+                <div className="text-[11px] font-medium tracking-wide text-text-tertiary uppercase">
+                  Location
+                </div>
                 <div className="text-text-primary">{selected.location}</div>
               </div>
             )}
             {selected.deadline && (
-              <div>
-                <div className="text-xs text-text-tertiary">Application Deadline</div>
+              <div className="rounded-xl border border-border/60 bg-background-secondary/70 px-3 py-2.5 flex flex-col gap-1">
+                <div className="text-[11px] font-medium tracking-wide text-text-tertiary uppercase">
+                  Application Deadline
+                </div>
                 <div className="text-text-primary">
                   {new Date(selected.deadline).toLocaleDateString()}
                 </div>

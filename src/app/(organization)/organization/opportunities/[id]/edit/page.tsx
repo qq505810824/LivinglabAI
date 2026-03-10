@@ -24,6 +24,7 @@ export default function OrgOpportunityEditPage() {
                 if (!cancelled && data) {
                     setInitialValues({
                         type: data.type,
+                        organization_name: data.organization_name,
                         title: data.title,
                         description: data.description,
                         location: data.location,
