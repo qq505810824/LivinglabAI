@@ -46,8 +46,12 @@ export async function GET() {
                 saves_count: item.saves_count,
                 created_at: item.created_at,
                 updated_at: item.updated_at,
-                organization_name: item.users?.name ?? undefined,
-                organization_logo: item.users?.avatar_url ?? undefined,
+                organization_name: item.company_name ?? undefined,
+                industry: item.industry ?? undefined,
+                company_size: item.company_size ?? undefined,
+                deliverable_type: item.deliverable_type ?? undefined,
+                // organization_name: item.users?.name ?? undefined,
+                // organization_logo: item.users?.avatar_url ?? undefined,
             })) ?? [];
 
         const response: ApiResponse<Case[]> = {
@@ -89,10 +93,12 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        const { company_name, industry, company_size, deliverable_type, ...dbPayload } = input;
         const { data, error } = await supabaseAdmin
             .from('cases')
             .insert({
-                ...input,
+                ...dbPayload,
+                company_name, industry, company_size, deliverable_type,
                 user_id: organizationId,
                 status: 'active',
             })
@@ -124,6 +130,10 @@ export async function POST(request: NextRequest) {
             saves_count: data.saves_count,
             created_at: data.created_at,
             updated_at: data.updated_at,
+            company_name: data.company_name ?? undefined,
+            industry: data.industry ?? undefined,
+            company_size: data.company_size ?? undefined,
+            deliverable_type: data.deliverable_type ?? undefined,
         };
 
         const response: ApiResponse<Case> = {

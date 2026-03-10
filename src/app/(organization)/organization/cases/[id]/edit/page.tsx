@@ -24,6 +24,9 @@ export default function OrgCaseEditPage() {
                 if (!cancelled && data) {
                     setInitialValues({
                         title: data.title,
+                        company_name: data.company_name,
+                        industry: data.industry,
+                        company_size: data.company_size,
                         department: data.department,
                         category: data.category,
                         difficulty: data.difficulty,
@@ -31,6 +34,7 @@ export default function OrgCaseEditPage() {
                         problem: data.problem,
                         existing_solution: data.existing_solution,
                         deliverable: data.deliverable,
+                        deliverable_type: data.deliverable_type,
                         public_data: data.public_data,
                         estimated_hours: data.estimated_hours,
                         skills: data.skills,
@@ -69,7 +73,7 @@ export default function OrgCaseEditPage() {
                 </p>
                 <button
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-hover transition-colors"
-                    onClick={() => router.push('/dashboard/cases')}
+                    onClick={() => router.push('/organization/cases')}
                 >
                     Back to Cases
                 </button>
@@ -87,12 +91,12 @@ export default function OrgCaseEditPage() {
                     setIsSubmitting(true);
                     try {
                         await updateCase(id, values);
-                        router.push('/dashboard/cases');
+                        router.push('/organization/cases');
                     } finally {
                         setIsSubmitting(false);
                     }
                 }}
-                onCancel={() => router.push('/dashboard/cases')}
+                onCancel={() => router.push('/organization/cases')}
             />
         </div>
     );

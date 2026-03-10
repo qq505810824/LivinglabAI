@@ -24,10 +24,10 @@ export const Header: React.FC<HeaderProps> = ({ variant = 'student' }) => {
     ];
 
     const orgLinks = [
-        { href: '/dashboard', label: '📊 Dashboard' },
-        { href: '/dashboard/cases', label: '📝 Cases' },
-        { href: '/dashboard/opportunities', label: '📌 Opportunities' },
-        { href: '/dashboard/submissions', label: '👀 Student Work' },
+        { href: '/organization', label: '📊 Dashboard' },
+        { href: '/organization/cases', label: '📝 Cases' },
+        { href: '/organization/opportunities', label: '📌 Opportunities' },
+        { href: '/organization/submissions', label: '👀 Student Work' },
     ];
 
     const links = variant === 'student' ? studentLinks : orgLinks;

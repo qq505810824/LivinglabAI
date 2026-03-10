@@ -87,12 +87,12 @@ export default function OrgOpportunityEditPage() {
                     setIsSubmitting(true);
                     try {
                         await updateOpportunity(id, values);
-                        router.push('/dashboard/opportunities');
+                        router.push('/organization/opportunities');
                     } finally {
                         setIsSubmitting(false);
                     }
                 }}
-                onCancel={() => router.push('/dashboard/opportunities')}
+                onCancel={() => router.push('/organization/opportunities')}
             />
         </div>
     );

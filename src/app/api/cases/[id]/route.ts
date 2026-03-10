@@ -76,6 +76,10 @@ export async function GET(_request: NextRequest, context: RouteParams) {
             updated_at: data.updated_at,
             organization_name: data.users?.name ?? undefined,
             organization_logo: data.users?.avatar_url ?? undefined,
+            company_name: data.company_name ?? undefined,
+            industry: data.industry ?? undefined,
+            company_size: data.company_size ?? undefined,
+            deliverable_type: data.deliverable_type ?? undefined,
         };
 
         const response: ApiResponse<Case> = {
@@ -113,8 +117,8 @@ export async function PATCH(request: NextRequest, context: RouteParams) {
     }
 
     try {
-        const updates = (await request.json()) as Partial<CreateCaseInput>;
-
+        const raw = (await request.json()) as Partial<CreateCaseInput>;
+        const { company_name, industry, company_size, deliverable_type, ...updates } = raw;
         const { error } = await supabaseAdmin
             .from('cases')
             .update({
@@ -129,6 +133,10 @@ export async function PATCH(request: NextRequest, context: RouteParams) {
                 public_data: updates.public_data,
                 estimated_hours: updates.estimated_hours,
                 skills: updates.skills,
+                company_name,
+                industry,
+                company_size,
+                deliverable_type,
             })
             .eq('id', id);
 
