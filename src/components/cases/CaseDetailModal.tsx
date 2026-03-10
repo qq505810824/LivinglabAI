@@ -4,9 +4,10 @@ import type { Case } from '@/types/case';
 interface CaseDetailModalProps {
     selected: Case | null;
     onClose: () => void;
+    hideActions?: boolean;
 }
 
-export function CaseDetailModal({ selected, onClose }: CaseDetailModalProps) {
+export function CaseDetailModal({ selected, onClose, hideActions }: CaseDetailModalProps) {
     if (!selected) return null;
 
     const difficultyVariant =
@@ -164,15 +165,17 @@ export function CaseDetailModal({ selected, onClose }: CaseDetailModalProps) {
                     >
                         Close
                     </button>
-                    <button
-                        className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-hover"
-                        onClick={() => {
-                            // TODO: wire to actual "start project" flow
-                            onClose();
-                        }}
-                    >
-                        🚀 Start Project
-                    </button>
+                    {!hideActions && (
+                        <button
+                            className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-hover"
+                            onClick={() => {
+                                // TODO: wire to actual "start project" flow
+                                onClose();
+                            }}
+                        >
+                            🚀 Start Project
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

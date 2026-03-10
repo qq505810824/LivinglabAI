@@ -1,16 +1,18 @@
 'use client';
 
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import type { Opportunity } from '@/types/opportunity';
 import { Loader2, Pencil, Trash2, Users } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
 
 interface OpportunityListProps {
     items: Opportunity[];
     onEdit: (item: Opportunity) => void;
     onDelete: (id: string) => void;
     isLoading?: boolean;
+    onSelect?: (item: Opportunity) => void;
 }
 
 const getStatusColor = (status: string): 'green' | 'red' | 'yellow' => {
@@ -35,7 +37,10 @@ export const OpportunityList: React.FC<OpportunityListProps> = ({
     onEdit,
     onDelete,
     isLoading,
+    onSelect,
 }) => {
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center py-20">
@@ -48,10 +53,23 @@ export const OpportunityList: React.FC<OpportunityListProps> = ({
         return null;
     }
 
+    const handleConfirmDelete = () => {
+        if (pendingDeleteId) {
+            onDelete(pendingDeleteId);
+            setPendingDeleteId(null);
+        }
+    };
+
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map((opp) => (
-                <Card key={opp.id} variant="hoverable" className="p-5">
+        <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {items.map((opp) => (
+                    <Card
+                        key={opp.id}
+                        variant="hoverable"
+                        className="p-5 cursor-pointer"
+                        onClick={() => onSelect?.(opp)}
+                    >
                     <div className="flex items-start justify-between">
                         <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
@@ -96,26 +114,45 @@ export const OpportunityList: React.FC<OpportunityListProps> = ({
                             </div>
                         </div>
 
-                        <div className="flex gap-2 ml-4">
-                            <button
-                                className="p-2 hover:bg-background-tertiary rounded-lg transition-colors"
-                                onClick={() => onEdit(opp)}
-                                title="Edit"
-                            >
-                                <Pencil className="w-4 h-4 text-text-secondary" />
-                            </button>
-                            <button
-                                className="p-2 hover:bg-danger/10 rounded-lg transition-colors"
-                                onClick={() => onDelete(opp.id)}
-                                title="Delete"
-                            >
-                                <Trash2 className="w-4 h-4 text-danger" />
-                            </button>
+                            <div className="flex gap-2 ml-4">
+                                <button
+                                    className="p-2 hover:bg-background-tertiary rounded-lg transition-colors"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEdit(opp);
+                                    }}
+                                    title="Edit"
+                                >
+                                    <Pencil className="w-4 h-4 text-text-secondary" />
+                                </button>
+                                <button
+                                    className="p-2 hover:bg-danger/10 rounded-lg transition-colors"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPendingDeleteId(opp.id);
+                                    }}
+                                    title="Delete"
+                                >
+                                    <Trash2 className="w-4 h-4 text-danger" />
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </Card>
-            ))}
-        </div>
+                    </Card>
+                ))}
+            </div>
+            <ConfirmDialog
+                open={pendingDeleteId !== null}
+                title="Delete opportunity?"
+                description={
+                    'This will permanently remove the opportunity from your dashboard.\nThis action cannot be undone.'
+                }
+                confirmLabel="Delete"
+                cancelLabel="Cancel"
+                variant="danger"
+                onConfirm={handleConfirmDelete}
+                onCancel={() => setPendingDeleteId(null)}
+            />
+        </>
     );
 };
 

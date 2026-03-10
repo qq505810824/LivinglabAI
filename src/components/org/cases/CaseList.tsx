@@ -1,15 +1,17 @@
 'use client';
 
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import type { Case } from '@/types/case';
 import { FileText, Pencil, Trash2, Users } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
 
 interface CaseListProps {
     items: Case[];
     onEdit: (item: Case) => void;
     onDelete: (id: string) => void;
+    onSelect?: (item: Case) => void;
 }
 
 const getCategoryColor = (category: string): 'purple' | 'blue' | 'yellow' | 'pink' | 'green' => {
@@ -42,17 +44,32 @@ const getDifficultyIcon = (difficulty: string) => {
     }
 };
 
-export const CaseList: React.FC<CaseListProps> = ({ items, onEdit, onDelete }) => {
+export const CaseList: React.FC<CaseListProps> = ({ items, onEdit, onDelete, onSelect }) => {
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
     if (items.length === 0) {
         return null;
     }
 
+    const handleConfirmDelete = () => {
+        if (pendingDeleteId) {
+            onDelete(pendingDeleteId);
+            setPendingDeleteId(null);
+        }
+    };
+
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map((caseItem) => (
-                <Card key={caseItem.id} variant="hoverable" className="p-5">
-                    <div className="flex items-start justify-between">
-                        <div className="flex-1">
+        <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {items.map((caseItem) => (
+                    <Card
+                        key={caseItem.id}
+                        variant="hoverable"
+                        className="p-5 cursor-pointer"
+                        onClick={() => onSelect?.(caseItem)}
+                    >
+                        <div className="flex items-start justify-between">
+                            <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                                 <Badge variant={getCategoryColor(caseItem.category)}>
                                     {caseItem.category}
@@ -97,26 +114,45 @@ export const CaseList: React.FC<CaseListProps> = ({ items, onEdit, onDelete }) =
                             </div>
                         </div>
 
-                        <div className="flex gap-2 ml-4">
-                            <button
-                                className="p-2 hover:bg-background-tertiary rounded-lg transition-colors"
-                                onClick={() => onEdit(caseItem)}
-                                title="Edit"
-                            >
-                                <Pencil className="w-4 h-4 text-text-secondary" />
-                            </button>
-                            <button
-                                className="p-2 hover:bg-danger/10 rounded-lg transition-colors"
-                                onClick={() => onDelete(caseItem.id)}
-                                title="Delete"
-                            >
-                                <Trash2 className="w-4 h-4 text-danger" />
-                            </button>
+                            <div className="flex gap-2 ml-4">
+                                <button
+                                    className="p-2 hover:bg-background-tertiary rounded-lg transition-colors"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEdit(caseItem);
+                                    }}
+                                    title="Edit"
+                                >
+                                    <Pencil className="w-4 h-4 text-text-secondary" />
+                                </button>
+                                <button
+                                    className="p-2 hover:bg-danger/10 rounded-lg transition-colors"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPendingDeleteId(caseItem.id);
+                                    }}
+                                    title="Delete"
+                                >
+                                    <Trash2 className="w-4 h-4 text-danger" />
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </Card>
-            ))}
-        </div>
+                    </Card>
+                ))}
+            </div>
+            <ConfirmDialog
+                open={pendingDeleteId !== null}
+                title="Delete case?"
+                description={
+                    'This will permanently remove the case and its data from your dashboard.\nThis action cannot be undone.'
+                }
+                confirmLabel="Delete"
+                cancelLabel="Cancel"
+                variant="danger"
+                onConfirm={handleConfirmDelete}
+                onCancel={() => setPendingDeleteId(null)}
+            />
+        </>
     );
 };
 

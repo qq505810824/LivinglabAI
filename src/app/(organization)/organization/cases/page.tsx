@@ -1,13 +1,17 @@
 'use client';
 
+import { CaseDetailModal } from '@/components/cases/CaseDetailModal';
 import { CaseList } from '@/components/org/cases/CaseList';
 import { useCases } from '@/hooks/useCases';
+import type { Case } from '@/types/case';
 import { Loader2, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function OrgCasesPage() {
     const { cases, isLoading, deleteCase } = useCases();
     const router = useRouter();
+    const [selected, setSelected] = useState<Case | null>(null);
 
     if (isLoading) {
         return (
@@ -26,7 +30,9 @@ export default function OrgCasesPage() {
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-text-primary mb-2">📝 Cases Management</h1>
-                    <p className="text-text-secondary">Create and manage your organization&apos;s case studies.</p>
+                    <p className="text-text-secondary">
+                        Create and manage your organization&apos;s case studies.
+                    </p>
                 </div>
                 <button
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-hover transition-colors"
@@ -52,15 +58,23 @@ export default function OrgCasesPage() {
                     </button>
                 </div>
             ) : (
-                <CaseList
-                    items={cases}
-                    onEdit={(item) => {
-                        router.push(`/organization/cases/${item.id}/edit`);
-                    }}
-                    onDelete={(id) => {
-                        void deleteCase(id);
-                    }}
-                />
+                <>
+                    <CaseList
+                        items={cases}
+                        onEdit={(item) => {
+                            router.push(`/organization/cases/${item.id}/edit`);
+                        }}
+                        onDelete={(id) => {
+                            void deleteCase(id);
+                        }}
+                        onSelect={(item) => setSelected(item)}
+                    />
+                    <CaseDetailModal
+                        selected={selected}
+                        onClose={() => setSelected(null)}
+                        hideActions
+                    />
+                </>
             )}
         </div>
     );
