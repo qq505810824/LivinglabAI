@@ -2,9 +2,8 @@
 
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Badge } from '@/components/ui/Badge';
-import { Card } from '@/components/ui/Card';
 import type { Case } from '@/types/case';
-import { FileText, Pencil, Trash2, Users } from 'lucide-react';
+import { Eye, FileText, Pencil, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 
 interface CaseListProps {
@@ -60,85 +59,84 @@ export const CaseList: React.FC<CaseListProps> = ({ items, onEdit, onDelete, onS
 
     return (
         <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {items.map((caseItem) => (
-                    <Card
-                        key={caseItem.id}
-                        variant="hoverable"
-                        className="p-5 cursor-pointer"
-                        onClick={() => onSelect?.(caseItem)}
-                    >
-                        <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                                <Badge variant={getCategoryColor(caseItem.category)}>
-                                    {caseItem.category}
-                                </Badge>
-                                <span className="text-xs text-text-tertiary">
-                                    {getDifficultyIcon(caseItem.difficulty)} {caseItem.difficulty}
-                                </span>
-                                <span className="text-xs text-text-tertiary">•</span>
-                                <span className="text-xs text-text-tertiary">
-                                    {new Date(caseItem.created_at).toLocaleDateString()}
-                                </span>
-                            </div>
-
-                            <h3 className="text-lg font-bold text-text-primary mb-2">
-                                {caseItem.title}
-                            </h3>
-                            <p className="text-sm text-text-secondary mb-3 line-clamp-2">
-                                {caseItem.scenario}
-                            </p>
-
-                            <div className="flex flex-wrap gap-2 mb-3">
-                                {caseItem.skills.slice(0, 4).map((skill, i) => (
-                                    <span
-                                        key={i}
-                                        className="px-3 py-1 bg-background-tertiary rounded text-xs text-text-secondary"
-                                    >
-                                        {skill}
+            <div className="overflow-x-auto rounded-xl border border-border bg-background-secondary">
+                <table className="min-w-full text-sm">
+                    <thead className="bg-background-tertiary/60">
+                        <tr className="text-left text-xs font-semibold text-text-tertiary uppercase tracking-wide">
+                            <th className="px-4 py-3">Title</th>
+                            <th className="px-4 py-3">Category</th>
+                            <th className="px-4 py-3">Difficulty</th>
+                            <th className="px-4 py-3">Est. Hours</th>
+                            <th className="px-4 py-3">Submissions</th>
+                            <th className="px-4 py-3">Created</th>
+                            <th className="px-4 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items.map((caseItem) => (
+                            <tr
+                                key={caseItem.id}
+                                className="border-t border-border/60 hover:bg-background-primary/60 transition-colors"
+                            >
+                                <td className="px-4 py-3 align-top">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="font-medium text-text-primary line-clamp-2">
+                                            {caseItem.title}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3 align-top">
+                                    <Badge variant={getCategoryColor(caseItem.category)}>
+                                        {caseItem.category}
+                                    </Badge>
+                                </td>
+                                <td className="px-4 py-3 align-top">
+                                    <span className="text-xs text-text-tertiary flex items-center gap-1 capitalize">
+                                        {getDifficultyIcon(caseItem.difficulty)} {caseItem.difficulty}
                                     </span>
-                                ))}
-                            </div>
-
-                            <div className="flex items-center gap-4 text-xs text-text-tertiary">
-                                <span className="flex items-center gap-1">
-                                    <FileText className="w-3 h-3" />
-                                    {caseItem.submissions_count} submissions
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    <Users className="w-3 h-3" />
-                                    👁️ {caseItem.views_count}
-                                </span>
-                                <span>⏱️ {caseItem.estimated_hours}h estimated</span>
-                            </div>
-                        </div>
-
-                            <div className="flex gap-2 ml-4">
-                                <button
-                                    className="p-2 hover:bg-background-tertiary rounded-lg transition-colors"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onEdit(caseItem);
-                                    }}
-                                    title="Edit"
-                                >
-                                    <Pencil className="w-4 h-4 text-text-secondary" />
-                                </button>
-                                <button
-                                    className="p-2 hover:bg-danger/10 rounded-lg transition-colors"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setPendingDeleteId(caseItem.id);
-                                    }}
-                                    title="Delete"
-                                >
-                                    <Trash2 className="w-4 h-4 text-danger" />
-                                </button>
-                            </div>
-                        </div>
-                    </Card>
-                ))}
+                                </td>
+                                <td className="px-4 py-3 align-top text-text-primary">
+                                    {caseItem.estimated_hours}h
+                                </td>
+                                <td className="px-4 py-3 align-top">
+                                    <span className="flex items-center gap-1 text-xs text-text-tertiary">
+                                        <FileText className="w-3 h-3" />
+                                        {caseItem.submissions_count}
+                                    </span>
+                                </td>
+                                <td className="px-4 py-3 align-top text-xs text-text-tertiary">
+                                    {new Date(caseItem.created_at).toLocaleDateString()}
+                                </td>
+                                <td className="px-4 py-3 align-top">
+                                    <div className="flex justify-end gap-1">
+                                        <button
+                                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-text-secondary hover:bg-background-tertiary"
+                                            onClick={() => onSelect?.(caseItem)}
+                                            title="View"
+                                        >
+                                            <Eye className="w-3 h-3" />
+                                            View
+                                        </button>
+                                        <button
+                                            className="p-1.5 hover:bg-background-tertiary rounded-lg transition-colors"
+                                            onClick={() => onEdit(caseItem)}
+                                            title="Edit"
+                                        >
+                                            <Pencil className="w-3.5 h-3.5 text-text-secondary" />
+                                        </button>
+                                        <button
+                                            className="p-1.5 hover:bg-danger/10 rounded-lg transition-colors"
+                                            onClick={() => setPendingDeleteId(caseItem.id)}
+                                            title="Delete"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5 text-danger" />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
             <ConfirmDialog
                 open={pendingDeleteId !== null}
