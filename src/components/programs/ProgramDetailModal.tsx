@@ -1,4 +1,7 @@
+'use client';
+
 import type { Opportunity } from '@/types/opportunity';
+import { useRouter } from 'next/navigation';
 
 interface ProgramDetailModalProps {
     selected: Opportunity | null;
@@ -15,6 +18,7 @@ export function ProgramDetailModal({
     onClose,
     hideActions,
 }: ProgramDetailModalProps) {
+    const router = useRouter();
     if (!selected) return null;
 
     return (
@@ -134,7 +138,12 @@ export function ProgramDetailModal({
                         ) : (
                             <button
                                 className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-hover"
-                                onClick={() => onApply(selected.id)}
+                                onClick={() => {
+                                    if (selected) {
+                                        router.push(`/programs/${selected.id}/apply`);
+                                    }
+                                    onClose();
+                                }}
                             >
                                 📝 Apply Now
                             </button>

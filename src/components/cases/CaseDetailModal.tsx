@@ -1,5 +1,8 @@
+'use client';
+
 import { Badge } from '@/components/ui/Badge';
 import type { Case } from '@/types/case';
+import { useRouter } from 'next/navigation';
 
 interface CaseDetailModalProps {
     selected: Case | null;
@@ -8,6 +11,7 @@ interface CaseDetailModalProps {
 }
 
 export function CaseDetailModal({ selected, onClose, hideActions }: CaseDetailModalProps) {
+    const router = useRouter();
     if (!selected) return null;
 
     const difficultyVariant =
@@ -169,7 +173,9 @@ export function CaseDetailModal({ selected, onClose, hideActions }: CaseDetailMo
                         <button
                             className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-hover"
                             onClick={() => {
-                                // TODO: wire to actual "start project" flow
+                                if (selected) {
+                                    router.push(`/cases/${selected.id}/start`);
+                                }
                                 onClose();
                             }}
                         >

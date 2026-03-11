@@ -1,4 +1,7 @@
+'use client';
+
 import type { Opportunity } from '@/types/opportunity';
+import { useRouter } from 'next/navigation';
 
 interface InternshipDetailModalProps {
   selected: Opportunity | null;
@@ -15,6 +18,7 @@ export function InternshipDetailModal({
   onClose,
   hideActions,
 }: InternshipDetailModalProps) {
+  const router = useRouter();
   if (!selected) return null;
 
   return (
@@ -141,7 +145,12 @@ export function InternshipDetailModal({
             ) : (
               <button
                 className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-hover"
-                onClick={() => onApply(selected.id)}
+                onClick={() => {
+                  if (selected) {
+                    router.push(`/internships/${selected.id}/apply`);
+                  }
+                  onClose();
+                }}
               >
                 📝 Apply Now
               </button>
