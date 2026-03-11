@@ -2,7 +2,7 @@ import { Menu, Transition } from '@headlessui/react';
 import {
     ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
-import { UserCircleIcon } from 'lucide-react';
+import { FolderIcon, UserCircleIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Fragment } from 'react';
 
@@ -40,7 +40,7 @@ function MenuButton(props: any) {
                         </Menu.Item>
                     </div>
                     <div className="px-1">
-                        {/* <Menu.Item>
+                        <Menu.Item>
                             {({ active }) => (
                                 <button
                                     className={`${active ? 'bg-violet-100 text-violet-800' : 'text-gray-900'
@@ -49,11 +49,11 @@ function MenuButton(props: any) {
                                         router.push('/my/todos');
                                     }}
                                 >
-                                    <Cog6ToothIcon className="mr-2 h-5 w-5" aria-hidden="true" />
-                                    我的待办事项
+                                    <FolderIcon className="mr-2 h-5 w-5 text-gray-500 hover:text-gray-700" aria-hidden="true" />
+                                    My Projects
                                 </button>
                             )}
-                        </Menu.Item> */}
+                        </Menu.Item>
                     </div>
                     <div className="px-1">
                         <Menu.Item>
@@ -71,7 +71,7 @@ function MenuButton(props: any) {
                                         className="mr-2 h-5 w-5"
                                         aria-hidden="true"
                                     />
-                                    登出
+                                    Logout
                                 </button>
                             )}
                         </Menu.Item>

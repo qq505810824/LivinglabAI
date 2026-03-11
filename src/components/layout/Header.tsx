@@ -19,8 +19,7 @@ export const Header: React.FC<HeaderProps> = ({ variant = 'student' }) => {
     const studentLinks = [
         { href: '/cases', label: '🔍 Problem Bank' },
         { href: '/internships', label: '💼 Internships' },
-        { href: '/programs', label: '🎓 Summer Programs' },
-        { href: '/projects', label: '📂 My Projects' },
+        { href: '/programs', label: '🎓 Summer Programs' }
     ];
 
     const orgLinks = [

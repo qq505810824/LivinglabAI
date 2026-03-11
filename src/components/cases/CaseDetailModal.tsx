@@ -18,18 +18,18 @@ export function CaseDetailModal({ selected, onClose, hideActions }: CaseDetailMo
         selected.difficulty === 'beginner'
             ? 'green'
             : selected.difficulty === 'intermediate'
-              ? 'yellow'
-              : 'red';
+                ? 'yellow'
+                : 'red';
 
     return (
         <div
-            className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4 animate-in fade-in-0"
+            className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 px-4 animate-in fade-in-0"
             onClick={(e) => {
                 if (e.target === e.currentTarget) onClose();
             }}
         >
             <div
-                className="max-w-2xl w-full bg-background-primary rounded-2xl shadow-xl border border-border overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200"
+                className="max-w-2xl w-full bg-background-primary rounded-2xl shadow-xl border border-white/30 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border">

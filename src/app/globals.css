@@ -56,12 +56,7 @@ body {
   overflow-x: hidden;
 }
 
-/* 链接样式 */
+/* 链接样式（颜色交给 Tailwind 工具类控制，这里只去掉下划线） */
 a {
-  color: var(--primary);
   text-decoration: none;
-}
-
-a:hover {
-  opacity: 0.8;
 }
