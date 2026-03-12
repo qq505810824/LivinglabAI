@@ -3,6 +3,7 @@
 import { CardLoader } from '@/components/common/CardLoader';
 import { PageBack } from '@/components/common/PageBack';
 import { Card } from '@/components/ui/Card';
+import { useAuth } from '@/hooks/useAuth';
 import { useOpportunities } from '@/hooks/useOpportunities';
 import { Opportunity } from '@/types/opportunity';
 import { useParams } from 'next/navigation';
@@ -12,6 +13,7 @@ export default function ApplyProgramPage() {
     const params = useParams();
     const id = params.id as string;
     const { getOpportunityById } = useOpportunities();
+    const { user } = useAuth();
 
     const [program, setProgram] = useState<Opportunity | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +52,7 @@ export default function ApplyProgramPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitted(false);
 
@@ -67,21 +69,47 @@ export default function ApplyProgramPage() {
             return;
         }
 
+        if (!user) {
+            setSubmitError('You need to be logged in to apply.');
+            return;
+        }
+
         setSubmitError(null);
 
-        const payload = {
-            programId: id,
-            fullName: fullName.trim(),
-            email: email.trim(),
-            university: university.trim() || null,
-            statement: statement.trim(),
-        };
+        try {
+            const res = await fetch('/api/submissions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: user.id,
+                    resourceType: 'program_application',
+                    resourceId: id,
+                    submitterName: fullName.trim() || user.username,
+                    submitterEmail: email.trim() || user.email,
+                    payload: {
+                        fullName: fullName.trim(),
+                        email: email.trim(),
+                        university: university.trim() || null,
+                        statement: statement.trim(),
+                    },
+                }),
+            });
 
-        // For now just print to console as requested
-        // eslint-disable-next-line no-console
-        console.log('Program application payload:', payload);
+            if (!res.ok) {
+                const json = await res.json().catch(() => null);
+                throw new Error(json?.message || json?.error || 'Failed to submit application');
+            }
 
-        setSubmitted(true);
+            setSubmitted(true);
+        } catch (err) {
+            setSubmitError(
+                err instanceof Error
+                    ? err.message
+                    : 'Failed to submit application. Please try again.',
+            );
+        }
     };
 
     if (isLoading) {

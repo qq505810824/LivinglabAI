@@ -11,6 +11,7 @@ interface CaseListProps {
     onEdit: (item: Case) => void;
     onDelete: (id: string) => void;
     onSelect?: (item: Case) => void;
+    onViewSubmissions?: (item: Case) => void;
 }
 
 const getCategoryColor = (category: string): 'purple' | 'blue' | 'yellow' | 'pink' | 'green' => {
@@ -43,7 +44,13 @@ const getDifficultyIcon = (difficulty: string) => {
     }
 };
 
-export const CaseList: React.FC<CaseListProps> = ({ items, onEdit, onDelete, onSelect }) => {
+export const CaseList: React.FC<CaseListProps> = ({
+    items,
+    onEdit,
+    onDelete,
+    onSelect,
+    onViewSubmissions,
+}) => {
     const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
     if (items.length === 0) {
@@ -117,6 +124,15 @@ export const CaseList: React.FC<CaseListProps> = ({ items, onEdit, onDelete, onS
                                             <Eye className="w-3 h-3" />
                                             View
                                         </button>
+                                        {onViewSubmissions && (
+                                            <button
+                                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-text-secondary hover:bg-background-tertiary"
+                                                onClick={() => onViewSubmissions(caseItem)}
+                                                title="View Submissions"
+                                            >
+                                                📑 Subs
+                                            </button>
+                                        )}
                                         <button
                                             className="p-1.5 hover:bg-background-tertiary rounded-lg transition-colors"
                                             onClick={() => onEdit(caseItem)}

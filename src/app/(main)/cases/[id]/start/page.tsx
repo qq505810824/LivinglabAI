@@ -3,6 +3,7 @@
 import { CardLoader } from '@/components/common/CardLoader';
 import { PageBack } from '@/components/common/PageBack';
 import { Card } from '@/components/ui/Card';
+import { useAuth } from '@/hooks/useAuth';
 import { useCases } from '@/hooks/useCases';
 import type { Case } from '@/types/case';
 import { useParams } from 'next/navigation';
@@ -13,6 +14,7 @@ export default function StartProjectPage() {
     const params = useParams();
     const id = params.id as string;
     const { getCaseById } = useCases();
+    const { user } = useAuth();
     const [caseItem, setCaseItem] = useState<Case | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -47,7 +49,7 @@ export default function StartProjectPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitted(false);
 
@@ -56,19 +58,43 @@ export default function StartProjectPage() {
             return;
         }
 
+        if (!user) {
+            setSubmitError('You need to be logged in to start a project.');
+            return;
+        }
+
         setSubmitError(null);
 
-        const payload = {
-            caseId: id,
-            teamSetup,
-            goal: goal.trim() || null,
-        };
+        try {
+            const res = await fetch('/api/submissions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: user.id,
+                    resourceType: 'case_project',
+                    resourceId: id,
+                    submitterName: user.username,
+                    submitterEmail: user.email,
+                    payload: {
+                        teamSetup,
+                        goal: goal.trim() || null,
+                    },
+                }),
+            });
 
-        // For now just print to console as requested
-        // eslint-disable-next-line no-console
-        console.log('Start project payload:', payload);
+            if (!res.ok) {
+                const json = await res.json().catch(() => null);
+                throw new Error(json?.message || json?.error || 'Failed to submit project');
+            }
 
-        setSubmitted(true);
+            setSubmitted(true);
+        } catch (err) {
+            setSubmitError(
+                err instanceof Error ? err.message : 'Failed to submit project. Please try again.',
+            );
+        }
     };
 
     if (isLoading) {

@@ -1,7 +1,9 @@
 'use client';
 
 import { InternshipDetailModal } from '@/components/internships/InternshipDetailModal';
+import { OpportunitySubmissionsModal } from '@/components/org/opportunities/OpportunitySubmissionsModal';
 import { OpportunityList } from '@/components/org/opportunities/OpportunityList';
+import { useAuth } from '@/hooks/useAuth';
 import { useOpportunities } from '@/hooks/useOpportunities';
 import type { Opportunity } from '@/types/opportunity';
 import { Loader2, Plus } from 'lucide-react';
@@ -10,8 +12,10 @@ import { useState } from 'react';
 
 export default function OrgOpportunitiesPage() {
     const { opportunities, isLoading, deleteOpportunity } = useOpportunities();
+    const { user } = useAuth();
     const router = useRouter();
     const [selected, setSelected] = useState<Opportunity | null>(null);
+    const [selectedForSubmissions, setSelectedForSubmissions] = useState<Opportunity | null>(null);
 
     if (isLoading) {
         return (
@@ -76,6 +80,7 @@ export default function OrgOpportunitiesPage() {
                             void deleteOpportunity(id);
                         }}
                         onSelect={(item) => setSelected(item)}
+                        onViewSubmissions={(item) => setSelectedForSubmissions(item)}
                     />
                     <InternshipDetailModal
                         selected={selected}
@@ -85,6 +90,11 @@ export default function OrgOpportunitiesPage() {
                         }}
                         onClose={() => setSelected(null)}
                         hideActions
+                    />
+                    <OpportunitySubmissionsModal
+                        opportunity={selectedForSubmissions}
+                        ownerId={user?.id ?? null}
+                        onClose={() => setSelectedForSubmissions(null)}
                     />
                 </>
             )}
