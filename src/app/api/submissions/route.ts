@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     if (resourceType === 'case_project') {
       const { data: caseRow, error: caseError } = await supabaseAdmin
         .from('cases')
-        .select('id, title, user_id, company_name')
+        .select('id, title, user_id, company_name, submissions_count')
         .eq('id', resourceId)
         .single();
 
@@ -51,15 +51,13 @@ export async function POST(request: NextRequest) {
       organizationName = (caseRow.company_name as string | null) ?? undefined;
 
       // increment submissions_count
-      const { error: updateCaseError } = await supabaseAdmin.rpc('increment_case_submissions', {
-        case_id: resourceId,
-      });
+      const currentCount = (caseRow as any).submissions_count ?? 0;
+      const { error: updateCaseError } = await supabaseAdmin
+        .from('cases')
+        .update({ submissions_count: currentCount + 1 })
+        .eq('id', resourceId);
       if (updateCaseError) {
-        // fallback: direct update if RPC is not defined
-        await supabaseAdmin
-          .from('cases')
-          .update({ submissions_count: (caseRow as any).submissions_count + 1 })
-          .eq('id', resourceId);
+        throw updateCaseError;
       }
     } else {
       // internships / programs share opportunities table
@@ -78,14 +76,13 @@ export async function POST(request: NextRequest) {
       organizationName = (oppRow.organization_name as string | null) ?? undefined;
 
       // increment applicants_count
-      const { error: updateOppError } = await supabaseAdmin.rpc('increment_opportunity_applicants', {
-        opportunity_id: resourceId,
-      });
+      const currentApplicants = (oppRow as any).applicants_count ?? 0;
+      const { error: updateOppError } = await supabaseAdmin
+        .from('opportunities')
+        .update({ applicants_count: currentApplicants + 1 })
+        .eq('id', resourceId);
       if (updateOppError) {
-        await supabaseAdmin
-          .from('opportunities')
-          .update({ applicants_count: (oppRow as any).applicants_count + 1 })
-          .eq('id', resourceId);
+        throw updateOppError;
       }
     }
 
