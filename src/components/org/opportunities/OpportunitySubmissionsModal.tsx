@@ -1,5 +1,6 @@
 import type { Submission } from '@/types/submission';
 import type { Opportunity } from '@/types/opportunity';
+import { OpportunitySubmissionDetailModal } from '@/components/org/opportunities/OpportunitySubmissionDetailModal';
 import { useEffect, useState } from 'react';
 
 interface OpportunitySubmissionsModalProps {
@@ -16,6 +17,7 @@ export function OpportunitySubmissionsModal({
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -93,6 +95,7 @@ export function OpportunitySubmissionsModal({
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">University</th>
                     <th className="px-4 py-3">Submitted At</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -118,6 +121,14 @@ export function OpportunitySubmissionsModal({
                           ? new Date(s.submitted_at).toLocaleString()
                           : '—'}
                       </td>
+                      <td className="px-4 py-3 align-top text-right">
+                        <button
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-text-secondary hover:bg-background-tertiary"
+                          onClick={() => setSelectedSubmission(s)}
+                        >
+                          View Detail
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -135,6 +146,12 @@ export function OpportunitySubmissionsModal({
           </button>
         </div>
       </div>
+      {selectedSubmission && (
+        <OpportunitySubmissionDetailModal
+          submission={selectedSubmission}
+          onClose={() => setSelectedSubmission(null)}
+        />
+      )}
     </div>
   );
 }

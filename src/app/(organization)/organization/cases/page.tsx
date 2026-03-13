@@ -1,9 +1,7 @@
 'use client';
 
 import { CaseDetailModal } from '@/components/cases/CaseDetailModal';
-import { CaseSubmissionsModal } from '@/components/org/cases/CaseSubmissionsModal';
 import { CaseList } from '@/components/org/cases/CaseList';
-import { useAuth } from '@/hooks/useAuth';
 import { useCases } from '@/hooks/useCases';
 import type { Case } from '@/types/case';
 import { Loader2, Plus } from 'lucide-react';
@@ -12,10 +10,8 @@ import { useState } from 'react';
 
 export default function OrgCasesPage() {
     const { cases, isLoading, deleteCase } = useCases();
-    const { user } = useAuth();
     const router = useRouter();
     const [selected, setSelected] = useState<Case | null>(null);
-    const [selectedForSubmissions, setSelectedForSubmissions] = useState<Case | null>(null);
 
     if (isLoading) {
         return (
@@ -72,17 +68,14 @@ export default function OrgCasesPage() {
                             void deleteCase(id);
                         }}
                         onSelect={(item) => setSelected(item)}
-                        onViewSubmissions={(item) => setSelectedForSubmissions(item)}
+                        onViewSubmissions={(item) =>
+                            router.push(`/organization/cases/${item.id}/submissions`)
+                        }
                     />
                     <CaseDetailModal
                         selected={selected}
                         onClose={() => setSelected(null)}
                         hideActions
-                    />
-                    <CaseSubmissionsModal
-                        caseItem={selectedForSubmissions}
-                        ownerId={user?.id ?? null}
-                        onClose={() => setSelectedForSubmissions(null)}
                     />
                 </>
             )}
